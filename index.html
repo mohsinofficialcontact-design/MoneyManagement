@@ -227,11 +227,18 @@ function initGoogle() {
     client_id: GOOGLE_CLIENT_ID,
     scope: DRIVE_SCOPE,
     callback: async (resp) => {
-      if (resp.error) { setSyncUI('off', 'Sign-in failed'); return; }
+      if (resp.error) {
+        setSyncUI('off', localStorage.getItem('moneymate-connected') ? 'Tap to reconnect' : '');
+        return;
+      }
       accessToken = resp.access_token;
+      localStorage.setItem('moneymate-connected', 'true');
       await onSignedIn();
     }
   });
+  if (localStorage.getItem('moneymate-connected') === 'true') {
+    tokenClient.requestAccessToken({ prompt: '' });
+  }
 }
 
 function handleSyncClick() {
