@@ -236,9 +236,14 @@ function initGoogle() {
       await onSignedIn();
     }
   });
-  if (localStorage.getItem('moneymate-connected') === 'true') {
-    tokenClient.requestAccessToken({ prompt: '' });
+ if (localStorage.getItem('moneymate-connected') === 'true') {
+    setSyncUI('off', 'Tap anywhere to resume sync');
+    document.body.addEventListener('click', autoReconnectOnce, { once: true });
   }
+}
+
+function autoReconnectOnce() {
+  if (!accessToken) tokenClient.requestAccessToken({ prompt: '' });
 }
 
 function handleSyncClick() {
