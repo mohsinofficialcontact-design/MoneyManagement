@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MoneyMate</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --purple: #6C5CE7; --purple-dark: #4A3FC4;
+    --teal: #00B894; --teal-bg: #D9F5EA; --teal-text: #0F6E56;
+    --coral: #E74C3C; --coral-bg: #FBE2DC; --coral-text: #993C1D;
+    --dark: #2D3436; --grey: #9B9AAE;
+    --bg: #F4F3FB; --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--dark);
+    max-width: 480px; margin: 0 auto;
+    min-height: 100vh; position: relative;
+    padding-bottom: 90px;
+  }
+  .header { padding: 20px 20px 6px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .greeting { font-size: 13px; color: var(--purple-dark); font-weight: 600; }
+  .username { font-size: 20px; font-weight: 700; }
+  .sync-btn { font-size: 11px; font-weight: 700; padding: 8px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .sync-btn.off { background: #EEEDFE; color: var(--purple); }
+  .sync-btn.on { background: var(--teal-bg); color: var(--teal-text); }
+  .sync-status { font-size: 10px; text-align: right; color: var(--grey); margin-top: 4px; }
+  .balance-card { margin: 12px 20px 20px; padding: 22px; border-radius: 20px; color: white; background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%); box-shadow: 0 10px 24px rgba(108,92,231,0.35); }
+  .balance-label { font-size: 12px; opacity: 0.85; letter-spacing: 0.5px; }
+  .balance-value { font-size: 32px; font-weight: 700; margin: 8px 0 18px; }
+  .stat-row { display: flex; gap: 14px; }
+  .stat-box { flex: 1; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 12px; }
+  .stat-label { font-size: 11px; opacity: 0.85; }
+  .stat-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .section { padding: 0 20px; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 14px 0 10px; display: flex; justify-content: space-between; align-items: center; }
+  .see-all { font-size: 12px; color: var(--purple); font-weight: 600; cursor: pointer; }
+  .txn-row { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
+  .txn-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .txn-icon.income { background: var(--teal-bg); }
+  .txn-icon.expense { background: var(--coral-bg); }
+  .txn-info { flex: 1; min-width: 0; }
+  .txn-desc { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .txn-meta { font-size: 11.5px; color: var(--grey); margin-top: 2px; }
+  .txn-amount { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .txn-amount.income { color: var(--teal-text); }
+  .txn-amount.expense { color: var(--coral-text); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .filter-chip { padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; background: white; color: var(--dark); }
+  .filter-chip.active { background: var(--purple); color: white; }
+  .budget-card, .goal-card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .budget-top, .goal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .budget-cat { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; }
+  .budget-icon { font-size: 15px; }
+  .budget-amt { font-size: 12.5px; font-weight: 700; }
+  .track { height: 8px; background: #F1EFE8; border-radius: 999px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; }
+  .goal-name { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 700; }
+  .goal-pct { font-size: 13px; font-weight: 700; color: var(--purple); }
+  .goal-track { height: 10px; background: #EEEDFE; border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
+  .goal-sub { font-size: 12.5px; color: #5F5E5A; }
+  .tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; height: 74px; background: white; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #EEEDFE; padding-bottom: 10px; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; color: var(--grey); }
+  .tab.active { color: var(--purple); }
+  .tab-icon { font-size: 20px; }
+  .tab-label { font-size: 10.5px; font-weight: 600; }
+  .fab { position: fixed; bottom: 90px; left: 50%; transform: translateX(calc(-50% + 190px)); width: 54px; height: 54px; border-radius: 27px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 26px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(45,52,54,0.45); align-items: flex-end; justify-content: center; z-index: 100; }
+  .modal-bg.open { display: flex; }
+  .modal-card { background: white; border-radius: 24px 24px 0 0; padding: 20px 22px 28px; width: 100%; max-width: 480px; }
+  .modal-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .close-x { font-size: 22px; color: var(--grey); cursor: pointer; }
+  .type-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .type-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 12px; font-size: 13.5px; font-weight: 700; cursor: pointer; background: var(--bg); color: #5F5E5A; }
+  .type-btn.expense.active { background: var(--purple); color: white; }
+  .type-btn.income.active { background: var(--teal); color: white; }
+  input, select { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid #EEEDFE; font-size: 14px; margin-bottom: 10px; outline: none; background: white; font-family: inherit; }
+  .save-btn { text-align: center; padding: 13px 0; border-radius: 14px; background: var(--purple); color: white; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .empty-msg { text-align: center; color: var(--grey); font-size: 13px; padding: 30px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="greeting">Good day 👋</div>
+    <div class="username">Mohshin</div>
+  </div>
+  <div>
+    <div class="sync-btn off" id="sync-btn" onclick="handleSyncClick()">🔗 Connect Drive</div>
+    <div class="sync-status" id="sync-status"></div>
+  </div>
+</div>
+
+<div class="balance-card">
+  <div class="balance-label">TOTAL BALANCE</div>
+  <div class="balance-value" id="balance-value">৳0</div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-label">📈 Income</div><div class="stat-value" id="income-value">৳0</div></div>
+    <div class="stat-box"><div class="stat-label">📉 Expenses</div><div class="stat-value" id="expense-value">৳0</div></div>
+  </div>
+</div>
+
+<div class="page active" id="page-home">
+  <div class="section">
+    <div class="section-title">Recent activity <span class="see-all" onclick="switchTab('transactions')">See all</span></div>
+    <div id="recent-list"></div>
+  </div>
+</div>
+
+<div class="page" id="page-transactions">
+  <div class="section">
+    <div class="section-title">Transactions</div>
+    <div class="filter-row">
+      <div class="filter-chip active" data-filter="All" onclick="setFilter('All')">All</div>
+      <div class="filter-chip" data-filter="Income" onclick="setFilter('Income')">Income</div>
+      <div class="filter-chip" data-filter="Expense" onclick="setFilter('Expense')">Expense</div>
+    </div>
+    <div id="all-list"></div>
+  </div>
+</div>
+
+<div class="page" id="page-budget">
+  <div class="section">
+    <div class="section-title">Budget</div>
+    <div id="budget-list"></div>
+  </div>
+</div>
+
+<div class="page" id="page-goals">
+  <div class="section">
+    <div class="section-title">Savings goals</div>
+    <div id="goals-list"></div>
+  </div>
+</div>
+
+<div class="fab" onclick="openModal()">+</div>
+
+<div class="tabbar">
+  <div class="tab active" data-tab="home" onclick="switchTab('home')"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+  <div class="tab" data-tab="transactions" onclick="switchTab('transactions')"><div class="tab-icon">📋</div><div class="tab-label">Activity</div></div>
+  <div class="tab" data-tab="budget" onclick="switchTab('budget')"><div class="tab-icon">🥧</div><div class="tab-label">Budget</div></div>
+  <div class="tab" data-tab="goals" onclick="switchTab('goals')"><div class="tab-icon">🎯</div><div class="tab-label">Goals</div></div>
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <div class="modal-title-row">
+      <div class="modal-title">Add transaction</div>
+      <div class="close-x" onclick="closeModal()">✕</div>
+    </div>
+    <div class="type-row">
+      <div class="type-btn expense active" id="btn-expense" onclick="setType('Expense')">Expense</div>
+      <div class="type-btn income" id="btn-income" onclick="setType('Income')">Income</div>
+    </div>
+    <input type="text" id="input-desc" placeholder="Description">
+    <input type="number" id="input-amount" placeholder="Amount (৳)">
+    <select id="input-cat"></select>
+    <div class="save-btn" onclick="addTransaction()">Save transaction</div>
+  </div>
+</div>
+
+<script>
+/* =======================================================
+   ⚠️ SETUP REQUIRED — paste your Google OAuth Client ID here
+   ======================================================= */
+const GOOGLE_CLIENT_ID = "PASTE_YOUR_CLIENT_ID_HERE.apps.googleusercontent.com";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const BACKUP_FILENAME = "moneymate-backup.json";
+
+const ICONS = {
+  'Salary': '💼','Freelance': '💼','Trading Profit': '📈','Gift': '🎁','Other Income': '💰',
+  'Groceries': '🛒','Rent': '🏠','Utilities': '⚡','Transport': '🚗','Dining Out': '🍽️',
+  'Shopping': '🛍️','Health': '❤️','Education': '🎓','Entertainment': '🎬','Other Expense': '⋯'
+};
+const EXPENSE_CATS = ['Groceries','Rent','Utilities','Transport','Dining Out','Shopping','Health','Education','Entertainment','Other Expense'];
+const INCOME_CATS = ['Salary','Freelance','Trading Profit','Gift','Other Income'];
+const BUDGETS = { Groceries: 8000, Rent: 25000, Utilities: 4000, Transport: 2500, 'Dining Out': 3000, Shopping: 4000, Health: 2000, Education: 3000, Entertainment: 2000, 'Other Expense': 1500 };
+
+const SEED_TXNS = [
+  { id: 1, date: '2026-07-01', desc: 'Monthly Salary', type: 'Income', cat: 'Salary', amount: 85000 },
+  { id: 2, date: '2026-07-02', desc: 'House Rent', type: 'Expense', cat: 'Rent', amount: 25000 },
+  { id: 3, date: '2026-07-03', desc: 'Grocery run', type: 'Expense', cat: 'Groceries', amount: 4200 }
+];
+const SEED_GOALS = [
+  { id: 1, icon: '🛡️', name: 'Emergency Fund', target: 150000, saved: 60000 },
+  { id: 2, icon: '💻', name: 'New Laptop', target: 90000, saved: 35000 },
+  { id: 3, icon: '✈️', name: 'Family Trip', target: 60000, saved: 15000 }
+];
+
+let txns = JSON.parse(localStorage.getItem('moneymate-txns') || 'null') || SEED_TXNS;
+let goals = JSON.parse(localStorage.getItem('moneymate-goals') || 'null') || SEED_GOALS;
+let currentFilter = 'All';
+let currentType = 'Expense';
+let accessToken = null;
+let driveFileId = null;
+let tokenClient = null;
+
+function fmt(n) { return '৳' + Math.round(n).toLocaleString('en-US'); }
+
+function saveLocal() {
+  localStorage.setItem('moneymate-txns', JSON.stringify(txns));
+  localStorage.setItem('moneymate-goals', JSON.stringify(goals));
+}
+
+function setSyncUI(state, label) {
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('sync-status');
+  if (state === 'on') {
+    btn.className = 'sync-btn on'; btn.textContent = '✓ Synced'; status.textContent = label || 'Google Drive connected';
+  } else if (state === 'syncing') {
+    btn.className = 'sync-btn on'; btn.textContent = '⏳ Syncing...'; status.textContent = '';
+  } else {
+    btn.className = 'sync-btn off'; btn.textContent = '🔗 Connect Drive'; status.textContent = label || '';
+  }
+}
+
+function initGoogle() {
+  if (typeof google === 'undefined') { setTimeout(initGoogle, 300); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { setSyncUI('off', 'Sign-in failed'); return; }
+      accessToken = resp.access_token;
+      await onSignedIn();
+    }
+  });
+}
+
+function handleSyncClick() {
+  if (!tokenClient) { alert('Google sign-in is still loading, try again in a moment.'); return; }
+  tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+}
+
+async function onSignedIn() {
+  setSyncUI('syncing');
+  try {
+    const found = await findDriveFile();
+    if (found) {
+      driveFileId = found.id;
+      const remoteData = await downloadDriveFile(driveFileId);
+      if (remoteData) {
+        txns = remoteData.txns || txns;
+        goals = remoteData.goals || goals;
+        saveLocal();
+        renderAll();
+      }
+    } else {
+      driveFileId = await createDriveFile();
+    }
+    setSyncUI('on');
+  } catch (e) {
+    console.error(e);
+    setSyncUI('off', 'Sync error — tap to retry');
+  }
+}
+
+async function findDriveFile() {
+  const res = await fetch(
+    "https://www.googleapis.com/drive/v3/files?q=name='" + BACKUP_FILENAME + "' and trashed=false&spaces=drive&fields=files(id,name)",
+    { headers: { Authorization: "Bearer " + accessToken } }
+  );
+  const data = await res.json();
+  return (data.files && data.files.length > 0) ? data.files[0] : null;
+}
+
+async function downloadDriveFile(fileId) {
+  const res = await fetch("https://www.googleapis.com/drive/v3/files/" + fileId + "?alt=media", { headers: { Authorization: "Bearer " + accessToken } });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+async function createDriveFile() {
+  const metadata = { name: BACKUP_FILENAME, mimeType: 'application/json' };
+  const boundary = 'moneymate_boundary';
+  const body =
+    '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + '\r\n' +
+    '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify({ txns, goals }) + '\r\n' +
+    '--' + boundary + '--';
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: "Bearer " + accessToken, 'Content-Type': 'multipart/related; boundary=' + boundary },
+    body: body
+  });
+  const data = await res.json();
+  return data.id;
+}
+
+async function uploadToDrive() {
+  if (!accessToken || !driveFileId) return;
+  try {
+    setSyncUI('syncing');
+    await fetch("https://www.googleapis.com/upload/drive/v3/files/" + driveFileId + "?uploadType=media", {
+      method: 'PATCH',
+      headers: { Authorization: "Bearer " + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txns, goals })
+    });
+    setSyncUI('on');
+  } catch (e) {
+    console.error(e);
+    setSyncUI('off', 'Sync error — tap to retry');
+  }
+}
+
+function save() {
+  saveLocal();
+  if (accessToken && driveFileId) uploadToDrive();
+}
+
+function renderTxnRow(t) {
+  const isIncome = t.type === 'Income';
+  const icon = ICONS[t.cat] || '⋯';
+  return '<div class="txn-row">' +
+    '<div class="txn-icon ' + (isIncome ? 'income' : 'expense') + '">' + icon + '</div>' +
+    '<div class="txn-info"><div class="txn-desc">' + t.desc + '</div><div class="txn-meta">' + t.cat + ' • ' + t.date + '</div></div>' +
+    '<div class="txn-amount ' + (isIncome ? 'income' : 'expense') + '">' + (isIncome ? '+' : '-') + fmt(t.amount) + '</div>' +
+  '</div>';
+}
+
+function renderAll() {
+  const income = txns.filter(t => t.type === 'Income').reduce((s,t) => s + t.amount, 0);
+  const expense = txns.filter(t => t.type === 'Expense').reduce((s,t) => s + t.amount, 0);
+  document.getElementById('balance-value').textContent = fmt(income - expense);
+  document.getElementById('income-value').textContent = fmt(income);
+  document.getElementById('expense-value').textContent = fmt(expense);
+
+  const sorted = [...txns].sort((a,b) => b.id - a.id);
+  document.getElementById('recent-list').innerHTML = sorted.slice(0,6).map(renderTxnRow).join('') || '<div class="empty-msg">No transactions yet</div>';
+
+  const filtered = currentFilter === 'All' ? sorted : sorted.filter(t => t.type === currentFilter);
+  document.getElementById('all-list').innerHTML = filtered.map(renderTxnRow).join('') || '<div class="empty-msg">No transactions yet</div>';
+
+  const spendByCat = {};
+  txns.filter(t => t.type === 'Expense').forEach(t => { spendByCat[t.cat] = (spendByCat[t.cat] || 0) + t.amount; });
+  document.getElementById('budget-list').innerHTML = Object.entries(BUDGETS).map(([cat, bud]) => {
+    const spent = spendByCat[cat] || 0;
+    const pct = Math.min(100, Math.round((spent / bud) * 100));
+    const over = spent > bud;
+    return '<div class="budget-card"><div class="budget-top"><div class="budget-cat"><span class="budget-icon">' + ICONS[cat] + '</span>' + cat + '</div>' +
+      '<div class="budget-amt" style="color:' + (over ? '#D85A30' : '#5F5E5A') + '">' + fmt(spent) + ' / ' + fmt(bud) + '</div></div>' +
+      '<div class="track"><div class="fill" style="width:' + pct + '%;background:' + (over ? '#D85A30' : '#00B894') + '"></div></div></div>';
+  }).join('');
+
+  document.getElementById('goals-list').innerHTML = goals.map(g => {
+    const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
+    return '<div class="goal-card"><div class="goal-top"><div class="goal-name">' + g.icon + ' ' + g.name + '</div><div class="goal-pct">' + pct + '%</div></div>' +
+      '<div class="goal-track"><div class="fill" style="width:' + pct + '%;background:#6C5CE7"></div></div>' +
+      '<div class="goal-sub">' + fmt(g.saved) + ' saved of ' + fmt(g.target) + '</div></div>';
+  }).join('');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f));
+  renderAll();
+}
+
+function setType(t) {
+  currentType = t;
+  document.getElementById('btn-expense').classList.toggle('active', t === 'Expense');
+  document.getElementById('btn-income').classList.toggle('active', t === 'Income');
+  populateCatOptions();
+}
+
+function populateCatOptions() {
+  const cats = currentType === 'Income' ? INCOME_CATS : EXPENSE_CATS;
+  document.getElementById('input-cat').innerHTML = cats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+}
+
+function openModal() { document.getElementById('modal-bg').classList.add('open'); populateCatOptions(); }
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  document.getElementById('input-desc').value = '';
+  document.getElementById('input-amount').value = '';
+}
+
+function addTransaction() {
+  const desc = document.getElementById('input-desc').value.trim();
+  const amount = parseFloat(document.getElementById('input-amount').value);
+  const cat = document.getElementById('input-cat').value;
+  if (!desc || !amount) { alert('Please enter description and amount'); return; }
+  txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: desc, type: currentType, cat: cat, amount: amount });
+  save();
+  renderAll();
+  closeModal();
+}
+
+renderAll();
+initGoogle();
+</script>
+
+</body>
+</html>
