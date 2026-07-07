@@ -97,12 +97,12 @@
   .loan-settled { background: var(--teal-bg); color: var(--teal-text); font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; text-align: center; margin-top: 10px; }
   .backup-row { display: flex; gap: 10px; padding: 0 20px 16px; }
   .backup-btn { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: white; font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; }
-  .tabbar { flex: 0 0 auto; height: 56px; background: white; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #EEEDFE; padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 30; }
-  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--grey); }
+  .tabbar { flex: 0 0 auto; height: 49px; background: white; display: flex; align-items: flex-end; justify-content: space-around; border-top: 1px solid #EEEDFE; padding-top: 3px; padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 30; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--grey); padding-bottom: 4px; }
   .tab.active { color: var(--purple); }
   .tab-icon { font-size: 15px; }
   .tab-label { font-size: 8.5px; font-weight: 600; }
-  .fab { position: fixed; bottom: calc(66px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(calc(-50% + 190px)); width: 50px; height: 50px; border-radius: 25px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; z-index: 51; }
+  .fab { position: fixed; bottom: calc(58px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(calc(-50% + 190px)); width: 50px; height: 50px; border-radius: 25px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; z-index: 51; }
   .page { display: none; }
   .page.active { display: block; }
   .modal-bg { display: none; position: fixed; inset: 0; background: rgba(45,52,54,0.45); align-items: flex-end; justify-content: center; z-index: 100; }
