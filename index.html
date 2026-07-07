@@ -242,7 +242,7 @@
       <div class="trade-action-btn withdraw" onclick="withdrawTradingProfit()">↩ Withdraw</div>
     </div>
     <div class="section">
-      <div class="section-title">History</div>
+      <div class="section-title">History <span class="add-link" onclick="backfillTradingHistory()">🔄 Sync past entries</span></div>
       <div class="swipe-hint">← Swipe an entry left to delete</div>
       <div id="trading-list"></div>
     </div>
@@ -658,6 +658,24 @@ function renderAll() {
   renderCharts(ranged);
 }
 
+function backfillTradingHistory() {
+  const legacyMap = { 'Trading Capital': 'Capital', 'Trading Withdrawal': 'Withdrawal', 'Trading Profit': 'Profit' };
+  let count = 0;
+  txns.forEach(t => {
+    if (t.linkedTradingId) return;
+    const tType = legacyMap[t.cat];
+    if (!tType) return;
+    const alreadyLinked = trading.some(tr => tr.linkedTxnIds && tr.linkedTxnIds.includes(t.id));
+    if (alreadyLinked) return;
+    trading.push({ id: t.id, date: t.date, type: tType, amount: t.amount, linkedTxnIds: [t.id] });
+    t.linkedTradingId = t.id;
+    count++;
+  });
+  save(); renderAll();
+  alert(count > 0
+    ? ('✅ Synced ' + count + ' past trading entr' + (count === 1 ? 'y' : 'ies') + ' into the Trading tab. Totals updated.')
+    : 'Everything is already in sync — nothing to backfill.');
+}
 function renderTrading() {
   const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
   const totalWithdrawalPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
@@ -744,6 +762,7 @@ function openEditTxn(id) {
   document.getElementById('modal-bg').classList.add('open');
 }
 function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+const TRADING_CAT_TYPE = { 'Trading Capital': 'Capital', 'Trading Withdrawal': 'Withdrawal', 'Trading Profit': 'Profit' };
 function saveTransaction() {
   const desc = document.getElementById('input-desc').value.trim();
   const amount = parseFloat(document.getElementById('input-amount').value);
@@ -751,8 +770,48 @@ function saveTransaction() {
   const date = document.getElementById('input-date').value;
   const recurring = document.getElementById('input-recurring').checked;
   if (!desc || !amount || !date) { alert('Please fill in description, amount, and date'); return; }
-  if (editingTxnId) { const t = txns.find(x => x.id === editingTxnId); Object.assign(t, { desc, amount, cat, date, type: currentType, recurring }); }
-  else { txns.unshift({ id: Date.now(), date, desc, type: currentType, cat, amount, recurring }); }
+
+  if (editingTxnId) {
+    const t = txns.find(x => x.id === editingTxnId);
+    Object.assign(t, { desc, amount, cat, date, type: currentType, recurring });
+    // Keep a linked trading entry in sync if this transaction originated from the trading flow
+    if (t.linkedTradingId) {
+      const tr = trading.find(x => x.id === t.linkedTradingId);
+      if (tr) { tr.amount = amount; tr.date = date; }
+    }
+    save(); renderAll(); closeModal();
+    return;
+  }
+
+  const tradingType = TRADING_CAT_TYPE[cat];
+  if (tradingType === 'Capital') {
+    const tradeId = Date.now(); const txnId = Date.now() + 1;
+    trading.unshift({ id: tradeId, date: date, type: 'Capital', amount: amount, linkedTxnIds: [txnId] });
+    txns.unshift({ id: txnId, date: date, desc: desc, type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: recurring, linkedTradingId: tradeId });
+  } else if (tradingType === 'Profit') {
+    const tradeId = Date.now(); const txnId = Date.now() + 1;
+    trading.unshift({ id: tradeId, date: date, type: 'Profit', amount: amount, linkedTxnIds: [txnId] });
+    txns.unshift({ id: txnId, date: date, desc: desc, type: 'Income', cat: 'Trading Profit', amount: amount, recurring: recurring, linkedTradingId: tradeId });
+  } else if (tradingType === 'Withdrawal') {
+    // Same auto-split rule as the dedicated Withdraw button: excess beyond remaining deposited principal is always Trading Profit
+    const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
+    const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
+    const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
+    const principalPortion = Math.min(amount, remainingPrincipal);
+    const profitPortion = amount - principalPortion;
+    if (principalPortion > 0) {
+      const tradeId = Date.now(); const txnId = Date.now() + 1;
+      trading.unshift({ id: tradeId, date: date, type: 'Withdrawal', amount: principalPortion, linkedTxnIds: [txnId] });
+      txns.unshift({ id: txnId, date: date, desc: desc, type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: recurring, linkedTradingId: tradeId });
+    }
+    if (profitPortion > 0) {
+      const tradeId2 = Date.now() + 2; const txnId2 = Date.now() + 3;
+      trading.unshift({ id: tradeId2, date: date, type: 'Profit', amount: profitPortion, linkedTxnIds: [txnId2] });
+      txns.unshift({ id: txnId2, date: date, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false, linkedTradingId: tradeId2 });
+    }
+  } else {
+    txns.unshift({ id: Date.now(), date, desc, type: currentType, cat, amount, recurring });
+  }
   save(); renderAll(); closeModal();
 }
 function deleteTransaction() {
