@@ -565,8 +565,8 @@ function withdrawTradingProfit() {
     confirmLabel: 'Withdraw',
     onConfirm: (amount) => {
       const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
-      const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
-      const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
+      const alreadyExtracted = trading.filter(t => t.type === 'Withdrawal' || t.type === 'Profit').reduce((s,t) => s + t.amount, 0);
+      const remainingPrincipal = Math.max(0, totalDeposit - alreadyExtracted);
 
       const principalPortion = Math.min(amount, remainingPrincipal);
       const profitPortion = amount - principalPortion;
@@ -832,8 +832,8 @@ function saveTransaction() {
   } else if (tradingType === 'Withdrawal') {
     // Same auto-split rule as the dedicated Withdraw button: excess beyond remaining deposited principal is always Trading Profit
     const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
-    const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
-    const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
+    const alreadyExtracted = trading.filter(t => t.type === 'Withdrawal' || t.type === 'Profit').reduce((s,t) => s + t.amount, 0);
+    const remainingPrincipal = Math.max(0, totalDeposit - alreadyExtracted);
     const principalPortion = Math.min(amount, remainingPrincipal);
     const profitPortion = amount - principalPortion;
     if (principalPortion > 0) {
