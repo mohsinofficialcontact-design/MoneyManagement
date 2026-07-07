@@ -444,19 +444,44 @@ function attachTxnSwipe() {
     });
   });
 }
+const REVERSE_TRADING_MAP = {
+  'Trading Capital': 'Capital', 'Trading Withdrawal': 'Withdrawal', 'Trading Profit': 'Profit'
+};
+function removeMatchingTradingEntry(t) {
+  if (t.linkedTradingId) { trading = trading.filter(tr => tr.id !== t.linkedTradingId); return; }
+  const tradeType = REVERSE_TRADING_MAP[t.cat];
+  if (!tradeType) return;
+  const matchIdx = trading.findIndex(tr => tr.type === tradeType && tr.amount === t.amount && tr.date === t.date);
+  if (matchIdx !== -1) trading.splice(matchIdx, 1);
+}
 function quickDelete(id) {
   if (!confirm('Delete this transaction?')) return;
   const t = txns.find(x => x.id === id);
-  if (t && t.linkedTradingId) { trading = trading.filter(tr => tr.id !== t.linkedTradingId); }
+  if (t) removeMatchingTradingEntry(t);
   txns = txns.filter(t => t.id !== id);
   save(); renderAll();
 }
 function deleteGoal(id) { if (!confirm('Delete this goal?')) return; goals = goals.filter(g => g.id !== id); save(); renderAll(); }
 function deleteLoan(id) { if (!confirm('Delete this loan record?')) return; loans = loans.filter(l => l.id !== id); save(); renderAll(); }
+const TRADING_TXN_MAP = {
+  Capital: { type: 'Expense', cat: 'Trading Capital' },
+  Withdrawal: { type: 'Income', cat: 'Trading Withdrawal' },
+  Profit: { type: 'Income', cat: 'Trading Profit' }
+};
 function deleteTradingEntry(id) {
   if (!confirm('Delete this trading entry? This will also remove its linked transaction from your Activity list.')) return;
   const entry = trading.find(t => t.id === id);
-  if (entry && entry.linkedTxnIds) { txns = txns.filter(t => !entry.linkedTxnIds.includes(t.id)); }
+  if (entry) {
+    if (entry.linkedTxnIds && entry.linkedTxnIds.length) {
+      txns = txns.filter(t => !entry.linkedTxnIds.includes(t.id));
+    } else {
+      const map = TRADING_TXN_MAP[entry.type];
+      if (map) {
+        const matchIdx = txns.findIndex(t => t.type === map.type && t.cat === map.cat && t.amount === entry.amount && t.date === entry.date);
+        if (matchIdx !== -1) txns.splice(matchIdx, 1);
+      }
+    }
+  }
   trading = trading.filter(t => t.id !== id);
   save(); renderAll();
 }
@@ -674,7 +699,7 @@ function deleteTransaction() {
   if (!editingTxnId) return;
   if (!confirm('Delete this transaction?')) return;
   const t = txns.find(x => x.id === editingTxnId);
-  if (t && t.linkedTradingId) { trading = trading.filter(tr => tr.id !== t.linkedTradingId); }
+  if (t) removeMatchingTradingEntry(t);
   txns = txns.filter(t => t.id !== editingTxnId);
   save(); renderAll(); closeModal();
 }
