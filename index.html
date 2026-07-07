@@ -743,22 +743,26 @@ function switchTab(tab) {
 }
 function initTabSwipe() {
   const el = document.querySelector('.content-scroll');
-  let startX = 0, startY = 0, tracking = false;
-  const skipSelectors = '.swipe-outer, .txn-row, .budget-card, .goal-card, .loan-card, .trade-entry, .chart-wrap, input, select';
+  let startX = 0, startY = 0, startTarget = null, tracking = false;
+  const hardSkip = 'input, select, .chart-wrap, .icon-choice, .close-x, .save-btn, .delete-btn, .swipe-action-btn';
   el.addEventListener('touchstart', e => {
-    if (e.target.closest(skipSelectors)) { tracking = false; return; }
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+    if (e.target.closest(hardSkip)) { tracking = false; return; }
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    startTarget = e.target;
+    tracking = true;
   }, { passive: true });
   el.addEventListener('touchend', e => {
     if (!tracking) return;
     tracking = false;
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6) {
-      const dir = dx < 0 ? 1 : -1;
-      const nextIndex = currentTabIndex + dir;
-      if (nextIndex >= 0 && nextIndex < TAB_ORDER.length) switchTab(TAB_ORDER[nextIndex]);
-    }
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    // If the gesture started on a swipeable card and moved left, let that card's own delete-reveal win instead
+    const onSwipeCard = startTarget && startTarget.closest('.swipe-outer');
+    if (onSwipeCard && dx < 0) return;
+    const dir = dx < 0 ? 1 : -1;
+    const nextIndex = currentTabIndex + dir;
+    if (nextIndex >= 0 && nextIndex < TAB_ORDER.length) switchTab(TAB_ORDER[nextIndex]);
   }, { passive: true });
 }
 function setFilter(f) { currentFilter = f; document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f)); renderAll(); }
