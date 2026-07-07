@@ -227,6 +227,9 @@
       <div class="backup-btn" onclick="document.getElementById('import-file').click()">⬆️ Import Backup</div>
     </div>
     <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importBackup(event)">
+    <div class="backup-row" style="padding-top:0;">
+      <div class="backup-btn" style="color:var(--coral-text);background:var(--coral-bg);" onclick="resetAllData()">🗑️ Reset All Data</div>
+    </div>
   </div>
 
   <div class="page" id="page-trading">
@@ -321,15 +324,8 @@ const DEFAULT_BUDGETS = { Groceries: 8000, Rent: 25000, Utilities: 4000, Transpo
 const CAT_COLORS = ['#6C5CE7','#00B894','#F0932B','#E74C3C','#0984E3','#FD79A8','#8E44AD','#16A085','#D35400','#2980B9','#27AE60'];
 const GOAL_ICONS = ['🎯','🛡️','💻','✈️','🏠','🚗','💍','🎓','🏥','📱'];
 
-const SEED_TXNS = [
-  { id: 1, date: '2026-07-01', desc: 'Monthly Salary', type: 'Income', cat: 'Salary', amount: 85000, recurring: true },
-  { id: 2, date: '2026-07-02', desc: 'House Rent', type: 'Expense', cat: 'Rent', amount: 25000, recurring: true },
-  { id: 3, date: '2026-07-03', desc: 'Grocery run', type: 'Expense', cat: 'Groceries', amount: 4200, recurring: false }
-];
-const SEED_GOALS = [
-  { id: 1, icon: '🛡️', name: 'Emergency Fund', target: 150000, saved: 60000 },
-  { id: 2, icon: '💻', name: 'New Laptop', target: 90000, saved: 35000 }
-];
+const SEED_TXNS = [];
+const SEED_GOALS = [];
 const SEED_LOANS = [];
 const SEED_TRADING = [];
 
@@ -423,6 +419,13 @@ function importBackup(event) {
     catch (err) { alert('Invalid backup file'); }
   };
   reader.readAsText(file);
+}
+function resetAllData() {
+  if (!confirm('This permanently deletes ALL transactions, goals, loans, and trading history on this device. Export a backup first if you want to keep a copy. Continue?')) return;
+  if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  txns = []; goals = []; loans = []; trading = []; budgets = { ...DEFAULT_BUDGETS };
+  save(); renderAll();
+  alert('✅ All data cleared. Starting fresh.');
 }
 function isInRange(dateStr, range) {
   const d = new Date(dateStr); const now = new Date();
