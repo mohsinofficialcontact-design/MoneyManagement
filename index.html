@@ -84,7 +84,8 @@
   .goal-track { height: 10px; background: #EEEDFE; border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
   .goal-sub { font-size: 12.5px; color: #5F5E5A; }
   .goal-btn-row { display: flex; gap: 8px; margin-top: 10px; }
-  .goal-btn { flex: 1; text-align: center; padding: 9px 0; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .goal-btn { flex: 1; text-align: center; padding: 9px 0; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform 0.13s ease; }
+  .goal-btn:active { transform: scale(0.96); }
   .goal-btn.add { background: var(--purple); color: white; }
   .goal-btn.withdraw { background: #EEEDFE; color: var(--purple); }
   .loan-name { font-size: 14.5px; font-weight: 700; }
@@ -93,12 +94,15 @@
   .loan-detail-row { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--grey); margin-bottom: 4px; }
   .loan-detail-row .borrowed { font-weight: 700; color: var(--dark); }
   .loan-detail-row .paid { font-weight: 700; color: var(--teal-text); }
-  .loan-pay-btn { background: var(--purple); color: white; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; text-align: center; cursor: pointer; margin-top: 10px; }
+  .loan-pay-btn { background: var(--purple); color: white; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; text-align: center; cursor: pointer; margin-top: 10px; transition: transform 0.13s ease; }
+  .loan-pay-btn:active { transform: scale(0.96); }
   .loan-settled { background: var(--teal-bg); color: var(--teal-text); font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; text-align: center; margin-top: 10px; }
   .backup-row { display: flex; gap: 10px; padding: 0 20px 16px; }
-  .backup-btn { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: white; font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; }
+  .backup-btn { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: white; font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; transition: transform 0.13s ease; }
+  .backup-btn:active { transform: scale(0.96); }
   .trade-action-row { display: flex; gap: 8px; padding: 0 20px 16px; }
-  .trade-action-btn { flex: 1; text-align: center; padding: 11px 4px; border-radius: 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  .trade-action-btn { flex: 1; text-align: center; padding: 11px 4px; border-radius: 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: transform 0.13s ease; }
+  .trade-action-btn:active { transform: scale(0.96); }
   .trade-action-btn.capital { background: #EEEDFE; color: var(--purple); }
   .trade-action-btn.result { background: var(--teal-bg); color: var(--teal-text); }
   .trade-action-btn.withdraw { background: var(--coral-bg); color: var(--coral-text); }
@@ -113,22 +117,30 @@
   .tab.active { color: var(--purple); }
   .tab-icon { font-size: 19px; }
   .tab-label { font-size: 9.5px; font-weight: 600; }
-  .fab { position: fixed; bottom: calc(58px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(calc(-50% + 190px)); width: 50px; height: 50px; border-radius: 25px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; z-index: 51; }
+  .fab { position: fixed; bottom: calc(58px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(calc(-50% + 190px)); width: 50px; height: 50px; border-radius: 25px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; z-index: 51; transition: transform 0.15s ease; }
+  .fab:active { transform: translateX(calc(-50% + 190px)) scale(0.92); }
   .page { display: none; }
   .page.active { display: block; }
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(45,52,54,0.45); align-items: flex-end; justify-content: center; z-index: 100; }
-  .modal-bg.open { display: flex; }
-  .modal-card { background: white; border-radius: 24px 24px 0 0; padding: 20px 22px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+  .modal-bg { display: flex; position: fixed; inset: 0; background: rgba(45,52,54,0); align-items: flex-end; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s cubic-bezier(.4,0,.2,1), background 0.3s cubic-bezier(.4,0,.2,1), visibility 0s linear 0.3s; }
+  .modal-bg.open { opacity: 1; visibility: visible; pointer-events: auto; background: rgba(45,52,54,0.5); transition: opacity 0.32s cubic-bezier(.4,0,.2,1), background 0.32s cubic-bezier(.4,0,.2,1), visibility 0s linear 0s; }
+  .modal-card { background: white; border-radius: 24px 24px 0 0; padding: 20px 22px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.38s cubic-bezier(.16,1,.3,1); box-shadow: 0 -12px 40px rgba(45,52,54,0.2); }
+  .modal-bg.open .modal-card { transform: translateY(0); }
   .modal-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
   .modal-title { font-size: 17px; font-weight: 700; }
-  .close-x { font-size: 22px; color: var(--grey); cursor: pointer; }
+  .modal-sub { font-size: 12.5px; color: var(--grey); line-height: 1.5; margin: -8px 0 14px; }
+  .close-x { font-size: 22px; color: var(--grey); cursor: pointer; transition: transform 0.15s ease, color 0.15s ease; }
+  .close-x:active { transform: scale(0.85); color: var(--dark); }
   .type-row { display: flex; gap: 8px; margin-bottom: 14px; }
-  .type-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 12px; font-size: 13.5px; font-weight: 700; cursor: pointer; background: var(--bg); color: #5F5E5A; }
+  .type-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 12px; font-size: 13.5px; font-weight: 700; cursor: pointer; background: var(--bg); color: #5F5E5A; transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease; }
+  .type-btn:active { transform: scale(0.97); }
   .type-btn.expense.active { background: var(--purple); color: white; }
   .type-btn.income.active { background: var(--teal); color: white; }
-  input, select { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid #EEEDFE; font-size: 14px; margin-bottom: 10px; outline: none; background: white; font-family: inherit; }
-  .save-btn { text-align: center; padding: 13px 0; border-radius: 14px; background: var(--purple); color: white; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-  .delete-btn { text-align: center; padding: 13px 0; border-radius: 14px; background: var(--coral-bg); color: var(--coral-text); font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+  input, select { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid #EEEDFE; font-size: 14px; margin-bottom: 10px; outline: none; background: white; font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+  input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(108,92,231,0.14); }
+  .save-btn { text-align: center; padding: 13px 0; border-radius: 14px; background: var(--purple); color: white; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: transform 0.13s ease, box-shadow 0.2s ease; box-shadow: 0 6px 16px rgba(108,92,231,0.28); }
+  .save-btn:active { transform: scale(0.97); box-shadow: 0 3px 10px rgba(108,92,231,0.28); }
+  .delete-btn { text-align: center; padding: 13px 0; border-radius: 14px; background: var(--coral-bg); color: var(--coral-text); font-size: 14.5px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: transform 0.13s ease; }
+  .delete-btn:active { transform: scale(0.97); }
   .recur-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--dark); }
   .empty-msg { text-align: center; color: var(--grey); font-size: 13px; padding: 30px 0; }
   .swipe-hint { text-align: center; color: var(--grey); font-size: 11px; padding: 0 0 10px; }
@@ -283,6 +295,15 @@
     <input type="text" id="goal-name" placeholder="Goal name (e.g. New Bike)">
     <input type="number" id="goal-target" placeholder="Target amount (৳)">
     <div class="save-btn" onclick="addGoal()">Add goal</div>
+  </div>
+</div>
+
+<div class="modal-bg" id="amount-modal-bg" onclick="if(event.target===this) closeAmountModal()">
+  <div class="modal-card">
+    <div class="modal-title-row"><div class="modal-title" id="amount-modal-title">Enter amount</div><div class="close-x" onclick="closeAmountModal()">✕</div></div>
+    <div class="modal-sub" id="amount-modal-sub" style="display:none;"></div>
+    <input type="number" id="amount-modal-input" placeholder="Amount (৳)" inputmode="decimal">
+    <div class="save-btn" id="amount-modal-confirm-btn" onclick="confirmAmountModal()">Confirm</div>
   </div>
 </div>
 
@@ -486,40 +507,79 @@ function deleteTradingEntry(id) {
   save(); renderAll();
 }
 
+let amountModalCallback = null;
+let amountModalAllowZero = false;
+function openAmountModal(opts) {
+  document.getElementById('amount-modal-title').textContent = opts.title || 'Enter amount';
+  const subEl = document.getElementById('amount-modal-sub');
+  if (opts.subtitle) { subEl.textContent = opts.subtitle; subEl.style.display = 'block'; }
+  else { subEl.style.display = 'none'; }
+  const input = document.getElementById('amount-modal-input');
+  input.value = (opts.presetValue !== undefined && opts.presetValue !== null) ? opts.presetValue : '';
+  input.placeholder = opts.placeholder || 'Amount (৳)';
+  document.getElementById('amount-modal-confirm-btn').textContent = opts.confirmLabel || 'Confirm';
+  amountModalCallback = opts.onConfirm || null;
+  amountModalAllowZero = !!opts.allowZero;
+  document.getElementById('amount-modal-bg').classList.add('open');
+  setTimeout(() => input.focus(), 320);
+}
+function closeAmountModal() {
+  document.getElementById('amount-modal-bg').classList.remove('open');
+  amountModalCallback = null;
+}
+function confirmAmountModal() {
+  const val = document.getElementById('amount-modal-input').value;
+  const amount = parseFloat(val);
+  const valid = amountModalAllowZero ? (!isNaN(amount) && amount >= 0) : (!isNaN(amount) && amount > 0);
+  if (!valid) { alert('Please enter a valid amount'); return; }
+  const cb = amountModalCallback;
+  closeAmountModal();
+  if (cb) cb(amount);
+}
+
 function addCapital() {
-  const val = prompt('How much are you depositing into your trading account? (Deducted from your main balance)');
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  const today = new Date().toISOString().slice(0,10);
-  const tradeId = Date.now(); const txnId = Date.now() + 1;
-  trading.unshift({ id: tradeId, date: today, type: 'Capital', amount: amount, linkedTxnIds: [txnId] });
-  txns.unshift({ id: txnId, date: today, desc: 'Trading Capital Deposit', type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: false, linkedTradingId: tradeId });
-  save(); renderAll();
+  openAmountModal({
+    title: 'Add trading capital',
+    subtitle: 'Deducted from your main balance.',
+    placeholder: 'Amount (৳)',
+    confirmLabel: 'Add capital',
+    onConfirm: (amount) => {
+      const today = new Date().toISOString().slice(0,10);
+      const tradeId = Date.now(); const txnId = Date.now() + 1;
+      trading.unshift({ id: tradeId, date: today, type: 'Capital', amount: amount, linkedTxnIds: [txnId] });
+      txns.unshift({ id: txnId, date: today, desc: 'Trading Capital Deposit', type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: false, linkedTradingId: tradeId });
+      save(); renderAll();
+    }
+  });
 }
 function withdrawTradingProfit() {
-  const val = prompt('How much are you withdrawing from your trading account? (Added to your main balance)');
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
+  openAmountModal({
+    title: 'Withdraw from trading',
+    subtitle: 'Added to your main balance. Anything beyond your remaining deposited capital is automatically logged as Trading Profit.',
+    placeholder: 'Amount (৳)',
+    confirmLabel: 'Withdraw',
+    onConfirm: (amount) => {
+      const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
+      const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
+      const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
 
-  const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
-  const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
-  const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
+      const principalPortion = Math.min(amount, remainingPrincipal);
+      const profitPortion = amount - principalPortion;
+      const today = new Date().toISOString().slice(0,10);
 
-  const principalPortion = Math.min(amount, remainingPrincipal);
-  const profitPortion = amount - principalPortion;
-  const today = new Date().toISOString().slice(0,10);
-
-  if (principalPortion > 0) {
-    const tradeId = Date.now(); const txnId = Date.now() + 1;
-    trading.unshift({ id: tradeId, date: today, type: 'Withdrawal', amount: principalPortion, linkedTxnIds: [txnId] });
-    txns.unshift({ id: txnId, date: today, desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: false, linkedTradingId: tradeId });
-  }
-  if (profitPortion > 0) {
-    const tradeId2 = Date.now() + 2; const txnId2 = Date.now() + 3;
-    trading.unshift({ id: tradeId2, date: today, type: 'Profit', amount: profitPortion, linkedTxnIds: [txnId2] });
-    txns.unshift({ id: txnId2, date: today, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false, linkedTradingId: tradeId2 });
-  }
-  save(); renderAll();
+      if (principalPortion > 0) {
+        const tradeId = Date.now(); const txnId = Date.now() + 1;
+        trading.unshift({ id: tradeId, date: today, type: 'Withdrawal', amount: principalPortion, linkedTxnIds: [txnId] });
+        txns.unshift({ id: txnId, date: today, desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: false, linkedTradingId: tradeId });
+      }
+      if (profitPortion > 0) {
+        const tradeId2 = Date.now() + 2; const txnId2 = Date.now() + 3;
+        trading.unshift({ id: tradeId2, date: today, type: 'Profit', amount: profitPortion, linkedTxnIds: [txnId2] });
+        txns.unshift({ id: txnId2, date: today, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false, linkedTradingId: tradeId2 });
+      }
+      save(); renderAll();
+    }
+  });
 }
 
 function renderTxnRow(t) {
@@ -705,10 +765,15 @@ function deleteTransaction() {
 }
 function editBudget(cat) {
   const current = budgets[cat] || 0;
-  const val = prompt('Set monthly budget for ' + cat + ' (৳):', current);
-  if (val === null) return;
-  const num = parseFloat(val); if (isNaN(num) || num < 0) { alert('Please enter a valid number'); return; }
-  budgets[cat] = num; save(); renderAll();
+  openAmountModal({
+    title: 'Set budget: ' + cat,
+    subtitle: 'Your monthly spending limit for this category.',
+    placeholder: 'Budget amount (৳)',
+    presetValue: current,
+    confirmLabel: 'Save budget',
+    allowZero: true,
+    onConfirm: (num) => { budgets[cat] = num; save(); renderAll(); }
+  });
 }
 function openLoanModal() { document.getElementById('loan-name').value=''; document.getElementById('loan-amount').value=''; document.getElementById('loan-due').value=''; document.getElementById('loan-modal-bg').classList.add('open'); }
 function closeLoanModal() { document.getElementById('loan-modal-bg').classList.remove('open'); }
@@ -723,13 +788,19 @@ function addLoan() {
 function payLoan(loanId) {
   const loan = loans.find(l => l.id === loanId); if (!loan) return;
   const remaining = loan.totalAmount - loan.paidAmount;
-  const val = prompt('Payment amount for ' + loan.name + ' (remaining: ' + fmt(remaining) + '):', remaining);
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  const actualPayment = Math.min(amount, remaining);
-  loan.paidAmount += actualPayment;
-  txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false });
-  save(); renderAll();
+  openAmountModal({
+    title: 'Pay loan: ' + loan.name,
+    subtitle: 'Remaining balance: ' + fmt(remaining),
+    placeholder: 'Payment amount (৳)',
+    presetValue: remaining,
+    confirmLabel: 'Record payment',
+    onConfirm: (amount) => {
+      const actualPayment = Math.min(amount, remaining);
+      loan.paidAmount += actualPayment;
+      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false });
+      save(); renderAll();
+    }
+  });
 }
 function openGoalModal() {
   document.getElementById('goal-name').value=''; document.getElementById('goal-target').value='';
@@ -748,23 +819,34 @@ function addGoal() {
 }
 function addToGoal(goalId) {
   const g = goals.find(x => x.id === goalId); if (!g) return;
-  const val = prompt('How much do you want to save toward "' + g.name + '"? (This will be deducted from your balance)');
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  g.saved += amount;
-  txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Saved for ' + g.name, type: 'Expense', cat: 'Savings', amount: amount, recurring: false });
-  save(); renderAll();
+  openAmountModal({
+    title: 'Add to "' + g.name + '"',
+    subtitle: 'Deducted from your main balance.',
+    placeholder: 'Amount (৳)',
+    confirmLabel: 'Add money',
+    onConfirm: (amount) => {
+      g.saved += amount;
+      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Saved for ' + g.name, type: 'Expense', cat: 'Savings', amount: amount, recurring: false });
+      save(); renderAll();
+    }
+  });
 }
 function withdrawFromGoal(goalId) {
   const g = goals.find(x => x.id === goalId); if (!g) return;
   if (g.saved <= 0) { alert('Nothing saved yet for this goal'); return; }
-  const val = prompt('How much do you want to withdraw from "' + g.name + '"? (max: ' + fmt(g.saved) + ', added back to your balance)');
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  const actual = Math.min(amount, g.saved);
-  g.saved -= actual;
-  txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Withdrew from ' + g.name, type: 'Income', cat: 'Savings Withdrawal', amount: actual, recurring: false });
-  save(); renderAll();
+  openAmountModal({
+    title: 'Withdraw from "' + g.name + '"',
+    subtitle: 'Max: ' + fmt(g.saved) + '. Added back to your main balance.',
+    placeholder: 'Amount (৳)',
+    presetValue: g.saved,
+    confirmLabel: 'Withdraw',
+    onConfirm: (amount) => {
+      const actual = Math.min(amount, g.saved);
+      g.saved -= actual;
+      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Withdrew from ' + g.name, type: 'Income', cat: 'Savings Withdrawal', amount: actual, recurring: false });
+      save(); renderAll();
+    }
+  });
 }
 
 function setRealViewportHeight() {
