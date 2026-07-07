@@ -113,14 +113,16 @@
   .trade-entry-meta { font-size: 11px; color: var(--grey); margin-top: 2px; }
   .trade-entry-amount { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
   .tabbar { flex: 0 0 auto; height: 49px; background: white; display: flex; align-items: flex-end; justify-content: space-around; border-top: 1px solid #EEEDFE; padding-top: 3px; padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 30; }
-  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--grey); padding-bottom: 4px; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--grey); padding-bottom: 4px; transition: color 0.2s ease, transform 0.15s ease; }
+  .tab:active { transform: scale(0.92); }
   .tab.active { color: var(--purple); }
   .tab-icon { font-size: 19px; }
   .tab-label { font-size: 9.5px; font-weight: 600; }
   .fab { position: fixed; bottom: calc(58px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(calc(-50% + 190px)); width: 50px; height: 50px; border-radius: 25px; background: var(--purple); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 8px 18px rgba(108,92,231,0.45); cursor: pointer; z-index: 51; transition: transform 0.15s ease; }
   .fab:active { transform: translateX(calc(-50% + 190px)) scale(0.92); }
   .page { display: none; }
-  .page.active { display: block; }
+  .page.active { display: block; animation: pageSlideIn 0.34s cubic-bezier(.16,1,.3,1); }
+  @keyframes pageSlideIn { from { opacity: 0; transform: translateX(var(--slide-x, 26px)); } to { opacity: 1; transform: translateX(0); } }
   .modal-bg { display: flex; position: fixed; inset: 0; background: rgba(45,52,54,0); align-items: flex-end; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s cubic-bezier(.4,0,.2,1), background 0.3s cubic-bezier(.4,0,.2,1), visibility 0s linear 0.3s; }
   .modal-bg.open { opacity: 1; visibility: visible; pointer-events: auto; background: rgba(45,52,54,0.5); transition: opacity 0.32s cubic-bezier(.4,0,.2,1), background 0.32s cubic-bezier(.4,0,.2,1), visibility 0s linear 0s; }
   .modal-card { background: white; border-radius: 24px 24px 0 0; padding: 20px 22px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.38s cubic-bezier(.16,1,.3,1); box-shadow: 0 -12px 40px rgba(45,52,54,0.2); }
@@ -725,11 +727,39 @@ function renderCharts(ranged) {
   categoryChartInstance = new Chart(catCtx, { type: 'doughnut', data: { labels: catLabels, datasets: [{ data: catLabels.map(c => spendByCat[c]), backgroundColor: CAT_COLORS }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
 }
 
+const TAB_ORDER = ['home', 'transactions', 'budget', 'loans', 'goals', 'trading'];
+let currentTabIndex = 0;
 function switchTab(tab) {
+  const newIndex = TAB_ORDER.indexOf(tab);
+  if (newIndex === -1) return;
+  const direction = newIndex >= currentTabIndex ? 1 : -1;
+  currentTabIndex = newIndex;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + tab).classList.add('active');
+  const newPage = document.getElementById('page-' + tab);
+  newPage.style.setProperty('--slide-x', (direction > 0 ? '26px' : '-26px'));
+  newPage.classList.add('active');
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelector('.content-scroll').scrollTop = 0;
+}
+function initTabSwipe() {
+  const el = document.querySelector('.content-scroll');
+  let startX = 0, startY = 0, tracking = false;
+  const skipSelectors = '.swipe-outer, .txn-row, .budget-card, .goal-card, .loan-card, .trade-entry, .chart-wrap, input, select';
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest(skipSelectors)) { tracking = false; return; }
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+  }, { passive: true });
+  el.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+      const dir = dx < 0 ? 1 : -1;
+      const nextIndex = currentTabIndex + dir;
+      if (nextIndex >= 0 && nextIndex < TAB_ORDER.length) switchTab(TAB_ORDER[nextIndex]);
+    }
+  }, { passive: true });
 }
 function setFilter(f) { currentFilter = f; document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f)); renderAll(); }
 function setType(t) { currentType = t; document.getElementById('btn-expense').classList.toggle('active', t === 'Expense'); document.getElementById('btn-income').classList.toggle('active', t === 'Income'); populateCatOptions(); }
@@ -916,6 +946,7 @@ window.addEventListener('orientationchange', () => setTimeout(setRealViewportHei
 setRealViewportHeight();
 
 renderAll();
+initTabSwipe();
 initGoogle();
 </script>
 
