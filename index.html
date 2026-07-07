@@ -375,20 +375,37 @@ function isInRange(dateStr, range) {
 }
 function setRange(r) { currentRange = r; document.querySelectorAll('.range-chip').forEach(c => c.classList.toggle('active', c.dataset.range === r)); renderAll(); }
 
+let openSwipeRow = null;
+function closeOpenSwipeRow(except) {
+  if (openSwipeRow && openSwipeRow !== except) {
+    openSwipeRow.style.transform = 'translateX(0)';
+    openSwipeRow = null;
+  }
+}
 function attachSwipe(selector) {
   document.querySelectorAll(selector).forEach(row => {
     let startX = 0, currentX = 0, dragging = false;
-    row.addEventListener('touchstart', e => { startX = e.touches[0].clientX; dragging = true; }, { passive: true });
+    row.addEventListener('touchstart', e => { closeOpenSwipeRow(row); startX = e.touches[0].clientX; dragging = true; }, { passive: true });
     row.addEventListener('touchmove', e => { if (!dragging) return; currentX = e.touches[0].clientX - startX; if (currentX < 0 && currentX > -120) row.style.transform = 'translateX(' + currentX + 'px)'; }, { passive: true });
-    row.addEventListener('touchend', () => { dragging = false; row.style.transform = currentX < -60 ? 'translateX(-70px)' : 'translateX(0)'; currentX = 0; });
+    row.addEventListener('touchend', () => {
+      dragging = false;
+      if (currentX < -60) { row.style.transform = 'translateX(-70px)'; openSwipeRow = row; }
+      else { row.style.transform = 'translateX(0)'; if (openSwipeRow === row) openSwipeRow = null; }
+      currentX = 0;
+    });
   });
 }
 function attachTxnSwipe() {
   document.querySelectorAll('.txn-row').forEach(row => {
     let startX = 0, currentX = 0, dragging = false;
-    row.addEventListener('touchstart', e => { startX = e.touches[0].clientX; dragging = true; }, { passive: true });
+    row.addEventListener('touchstart', e => { closeOpenSwipeRow(row); startX = e.touches[0].clientX; dragging = true; }, { passive: true });
     row.addEventListener('touchmove', e => { if (!dragging) return; currentX = e.touches[0].clientX - startX; if (currentX < 0 && currentX > -120) row.style.transform = 'translateX(' + currentX + 'px)'; }, { passive: true });
-    row.addEventListener('touchend', () => { dragging = false; row.style.transform = currentX < -60 ? 'translateX(-112px)' : 'translateX(0)'; currentX = 0; });
+    row.addEventListener('touchend', () => {
+      dragging = false;
+      if (currentX < -60) { row.style.transform = 'translateX(-112px)'; openSwipeRow = row; }
+      else { row.style.transform = 'translateX(0)'; if (openSwipeRow === row) openSwipeRow = null; }
+      currentX = 0;
+    });
   });
 }
 function quickDelete(id) { if (!confirm('Delete this transaction?')) return; txns = txns.filter(t => t.id !== id); save(); renderAll(); }
@@ -599,6 +616,13 @@ function withdrawFromGoal(goalId) {
   txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Withdrew from ' + g.name, type: 'Income', cat: 'Savings Withdrawal', amount: actual, recurring: false });
   save(); renderAll();
 }
+
+function setRealViewportHeight() {
+  document.body.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', setRealViewportHeight);
+window.addEventListener('orientationchange', () => setTimeout(setRealViewportHeight, 200));
+setRealViewportHeight();
 
 renderAll();
 initGoogle();
