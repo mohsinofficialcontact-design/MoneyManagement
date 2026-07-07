@@ -218,12 +218,15 @@
   <div class="page" id="page-trading">
     <div class="total-summary-card" style="background:linear-gradient(135deg,#16A085 0%,#0d7a63 100%);">
       <div class="total-summary-label">💹 TRADING OVERVIEW</div>
-      <div class="total-summary-value" id="trading-value-display">৳0</div>
-      <div class="total-summary-sub" id="trading-sub-display">Capital: ৳0 • Net P/L: ৳0</div>
+      <div class="total-summary-value" id="trading-gap-display">৳0</div>
+      <div class="total-summary-sub" id="trading-gap-sub">Gap (Deposit − Withdrawal)</div>
+      <div class="stat-row" style="margin-top:12px;">
+        <div class="stat-box"><div class="stat-label">💵 Deposit Balance</div><div class="stat-value" id="trading-deposit-display">৳0</div></div>
+        <div class="stat-box"><div class="stat-label">↩️ Withdrawal Amount</div><div class="stat-value" id="trading-withdrawal-display">৳0</div></div>
+      </div>
     </div>
     <div class="trade-action-row">
       <div class="trade-action-btn capital" onclick="addCapital()">+ Add Capital</div>
-      <div class="trade-action-btn result" onclick="logTradeResult()">📊 Log Result</div>
       <div class="trade-action-btn withdraw" onclick="withdrawTradingProfit()">↩ Withdraw</div>
     </div>
     <div class="section">
@@ -454,25 +457,27 @@ function addCapital() {
   txns.unshift({ id: Date.now() + 1, date: new Date().toISOString().slice(0,10), desc: 'Trading Capital Deposit', type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: false });
   save(); renderAll();
 }
-function logTradeResult() {
-  const isProfit = confirm('Was this a PROFIT?\\n\\nClick OK for Profit, Cancel for Loss.');
-  const val = prompt(isProfit ? 'Enter profit amount (৳):' : 'Enter loss amount (৳):');
-  if (val === null) return;
-  const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  trading.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), type: isProfit ? 'Profit' : 'Loss', amount: amount });
-  if (isProfit) {
-    txns.unshift({ id: Date.now() + 1, date: new Date().toISOString().slice(0,10), desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: amount, recurring: false });
-  } else {
-    txns.unshift({ id: Date.now() + 1, date: new Date().toISOString().slice(0,10), desc: 'Trading Loss', type: 'Expense', cat: 'Trading Loss', amount: amount, recurring: false });
-  }
-  save(); renderAll();
-}
 function withdrawTradingProfit() {
-  const val = prompt('How much are you withdrawing from your trading account back to your main balance?');
+  const val = prompt('How much are you withdrawing from your trading account? (Added to your main balance)');
   if (val === null) return;
   const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  trading.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), type: 'Withdrawal', amount: amount });
-  txns.unshift({ id: Date.now() + 1, date: new Date().toISOString().slice(0,10), desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: amount, recurring: false });
+
+  const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
+  const alreadyWithdrawnPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
+  const remainingPrincipal = Math.max(0, totalDeposit - alreadyWithdrawnPrincipal);
+
+  const principalPortion = Math.min(amount, remainingPrincipal);
+  const profitPortion = amount - principalPortion;
+  const today = new Date().toISOString().slice(0,10);
+
+  if (principalPortion > 0) {
+    trading.unshift({ id: Date.now(), date: today, type: 'Withdrawal', amount: principalPortion });
+    txns.unshift({ id: Date.now() + 1, date: today, desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: false });
+  }
+  if (profitPortion > 0) {
+    trading.unshift({ id: Date.now() + 2, date: today, type: 'Profit', amount: profitPortion });
+    txns.unshift({ id: Date.now() + 3, date: today, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false });
+  }
   save(); renderAll();
 }
 
@@ -491,7 +496,9 @@ function renderAll() {
   const ranged = txns.filter(t => isInRange(t.date, currentRange));
   const income = ranged.filter(t => t.type === 'Income').reduce((s,t) => s + t.amount, 0);
   const expense = ranged.filter(t => t.type === 'Expense').reduce((s,t) => s + t.amount, 0);
-  document.getElementById('balance-value').textContent = fmt(income - expense);
+  const allTimeIncome = txns.filter(t => t.type === 'Income').reduce((s,t) => s + t.amount, 0);
+  const allTimeExpense = txns.filter(t => t.type === 'Expense').reduce((s,t) => s + t.amount, 0);
+  document.getElementById('balance-value').textContent = fmt(allTimeIncome - allTimeExpense);
   document.getElementById('income-value').textContent = fmt(income);
   document.getElementById('expense-value').textContent = fmt(expense);
 
@@ -551,27 +558,29 @@ function renderAll() {
 }
 
 function renderTrading() {
-  const capital = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
-  const withdrawn = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
-  const profit = trading.filter(t => t.type === 'Profit').reduce((s,t) => s + t.amount, 0);
-  const loss = trading.filter(t => t.type === 'Loss').reduce((s,t) => s + t.amount, 0);
-  const netPL = profit - loss;
-  const currentValue = capital + netPL - withdrawn;
-  const roi = capital > 0 ? (netPL / capital * 100) : 0;
-  const roiSign = netPL >= 0 ? '+' : '';
+  const totalDeposit = trading.filter(t => t.type === 'Capital').reduce((s,t) => s + t.amount, 0);
+  const totalWithdrawalPrincipal = trading.filter(t => t.type === 'Withdrawal').reduce((s,t) => s + t.amount, 0);
+  const totalProfit = trading.filter(t => t.type === 'Profit').reduce((s,t) => s + t.amount, 0);
+  const totalWithdrawnOverall = totalWithdrawalPrincipal + totalProfit;
+  const gap = totalDeposit - totalWithdrawnOverall;
 
-  document.getElementById('trading-value-display').textContent = fmt(currentValue);
-  document.getElementById('trading-sub-display').textContent = 'Capital: ' + fmt(capital) + ' • Net P/L: ' + roiSign + fmt(netPL) + ' (' + roiSign + roi.toFixed(1) + '%)';
+  document.getElementById('trading-deposit-display').textContent = fmt(totalDeposit);
+  document.getElementById('trading-withdrawal-display').textContent = fmt(totalWithdrawnOverall);
+  document.getElementById('trading-gap-display').textContent = (gap < 0 ? '-' : '') + fmt(Math.abs(gap));
+  document.getElementById('trading-gap-sub').textContent = gap < 0
+    ? 'Withdrawn ' + fmt(Math.abs(gap)) + ' more than deposited (net profit taken)'
+    : 'Gap (Deposit − Withdrawal) • Realized profit: ' + fmt(totalProfit);
 
   const sortedTrading = [...trading].sort((a,b) => b.id - a.id);
-  const typeIcons = { Capital: '💹', Profit: '📈', Loss: '📉', Withdrawal: '↩️' };
-  const typeColors = { Capital: '#6C5CE7', Profit: '#00B894', Loss: '#E74C3C', Withdrawal: '#0984E3' };
+  const typeIcons = { Capital: '💹', Profit: '📈', Withdrawal: '↩️' };
+  const typeColors = { Capital: '#6C5CE7', Profit: '#00B894', Withdrawal: '#0984E3' };
+  const typeLabels = { Capital: 'Trading Capital Deposit', Profit: 'Trading Profit', Withdrawal: 'Trading Withdrawal' };
   document.getElementById('trading-list').innerHTML = sortedTrading.map(t => {
-    const sign = (t.type === 'Profit' || t.type === 'Withdrawal') ? '+' : (t.type === 'Loss' ? '-' : '');
+    const sign = t.type === 'Capital' ? '' : '+';
     return '<div class="swipe-outer"><div class="swipe-actions"><div class="swipe-action-btn delete" style="border-radius:14px;" onclick="deleteTradingEntry(' + t.id + ')">🗑️</div></div>' +
       '<div class="trade-entry" data-id="' + t.id + '">' +
         '<div class="trade-entry-icon" style="background:' + typeColors[t.type] + '22;">' + typeIcons[t.type] + '</div>' +
-        '<div class="trade-entry-info"><div class="trade-entry-desc">' + t.type + '</div><div class="trade-entry-meta">' + t.date + '</div></div>' +
+        '<div class="trade-entry-info"><div class="trade-entry-desc">' + typeLabels[t.type] + '</div><div class="trade-entry-meta">' + t.date + '</div></div>' +
         '<div class="trade-entry-amount" style="color:' + typeColors[t.type] + ';">' + sign + fmt(t.amount) + '</div>' +
       '</div></div>';
   }).join('') || '<div class="empty-msg">No trading activity yet</div>';
