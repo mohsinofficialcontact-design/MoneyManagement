@@ -610,7 +610,7 @@ function renderTrading() {
   document.getElementById('trading-gap-display').textContent = fmt(Math.abs(gap));
   document.getElementById('trading-gap-sub').textContent = gap < 0
     ? '🎉 Net Profit (withdrawn more than deposited)'
-    : 'Gap (Deposit − Withdrawal) • Realized profit so far: ' + fmt(totalProfit);
+    : 'Gap (Deposit − Withdrawal) • Capital still in account';
 
   const sortedTrading = [...trading].sort((a,b) => b.id - a.id);
   const typeIcons = { Capital: '💹', Profit: '📈', Withdrawal: '↩️' };
