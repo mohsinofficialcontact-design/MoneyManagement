@@ -444,17 +444,31 @@ function attachTxnSwipe() {
     });
   });
 }
-function quickDelete(id) { if (!confirm('Delete this transaction?')) return; txns = txns.filter(t => t.id !== id); save(); renderAll(); }
+function quickDelete(id) {
+  if (!confirm('Delete this transaction?')) return;
+  const t = txns.find(x => x.id === id);
+  if (t && t.linkedTradingId) { trading = trading.filter(tr => tr.id !== t.linkedTradingId); }
+  txns = txns.filter(t => t.id !== id);
+  save(); renderAll();
+}
 function deleteGoal(id) { if (!confirm('Delete this goal?')) return; goals = goals.filter(g => g.id !== id); save(); renderAll(); }
 function deleteLoan(id) { if (!confirm('Delete this loan record?')) return; loans = loans.filter(l => l.id !== id); save(); renderAll(); }
-function deleteTradingEntry(id) { if (!confirm('Delete this trading entry?')) return; trading = trading.filter(t => t.id !== id); save(); renderAll(); }
+function deleteTradingEntry(id) {
+  if (!confirm('Delete this trading entry? This will also remove its linked transaction from your Activity list.')) return;
+  const entry = trading.find(t => t.id === id);
+  if (entry && entry.linkedTxnIds) { txns = txns.filter(t => !entry.linkedTxnIds.includes(t.id)); }
+  trading = trading.filter(t => t.id !== id);
+  save(); renderAll();
+}
 
 function addCapital() {
   const val = prompt('How much are you depositing into your trading account? (Deducted from your main balance)');
   if (val === null) return;
   const amount = parseFloat(val); if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
-  trading.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), type: 'Capital', amount: amount });
-  txns.unshift({ id: Date.now() + 1, date: new Date().toISOString().slice(0,10), desc: 'Trading Capital Deposit', type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: false });
+  const today = new Date().toISOString().slice(0,10);
+  const tradeId = Date.now(); const txnId = Date.now() + 1;
+  trading.unshift({ id: tradeId, date: today, type: 'Capital', amount: amount, linkedTxnIds: [txnId] });
+  txns.unshift({ id: txnId, date: today, desc: 'Trading Capital Deposit', type: 'Expense', cat: 'Trading Capital', amount: amount, recurring: false, linkedTradingId: tradeId });
   save(); renderAll();
 }
 function withdrawTradingProfit() {
@@ -471,12 +485,14 @@ function withdrawTradingProfit() {
   const today = new Date().toISOString().slice(0,10);
 
   if (principalPortion > 0) {
-    trading.unshift({ id: Date.now(), date: today, type: 'Withdrawal', amount: principalPortion });
-    txns.unshift({ id: Date.now() + 1, date: today, desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: false });
+    const tradeId = Date.now(); const txnId = Date.now() + 1;
+    trading.unshift({ id: tradeId, date: today, type: 'Withdrawal', amount: principalPortion, linkedTxnIds: [txnId] });
+    txns.unshift({ id: txnId, date: today, desc: 'Trading Withdrawal', type: 'Income', cat: 'Trading Withdrawal', amount: principalPortion, recurring: false, linkedTradingId: tradeId });
   }
   if (profitPortion > 0) {
-    trading.unshift({ id: Date.now() + 2, date: today, type: 'Profit', amount: profitPortion });
-    txns.unshift({ id: Date.now() + 3, date: today, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false });
+    const tradeId2 = Date.now() + 2; const txnId2 = Date.now() + 3;
+    trading.unshift({ id: tradeId2, date: today, type: 'Profit', amount: profitPortion, linkedTxnIds: [txnId2] });
+    txns.unshift({ id: txnId2, date: today, desc: 'Trading Profit', type: 'Income', cat: 'Trading Profit', amount: profitPortion, recurring: false, linkedTradingId: tradeId2 });
   }
   save(); renderAll();
 }
@@ -566,10 +582,10 @@ function renderTrading() {
 
   document.getElementById('trading-deposit-display').textContent = fmt(totalDeposit);
   document.getElementById('trading-withdrawal-display').textContent = fmt(totalWithdrawnOverall);
-  document.getElementById('trading-gap-display').textContent = (gap < 0 ? '-' : '') + fmt(Math.abs(gap));
+  document.getElementById('trading-gap-display').textContent = fmt(Math.abs(gap));
   document.getElementById('trading-gap-sub').textContent = gap < 0
-    ? 'Withdrawn ' + fmt(Math.abs(gap)) + ' more than deposited (net profit taken)'
-    : 'Gap (Deposit − Withdrawal) • Realized profit: ' + fmt(totalProfit);
+    ? '🎉 Net Profit (withdrawn more than deposited)'
+    : 'Gap (Deposit − Withdrawal) • Realized profit so far: ' + fmt(totalProfit);
 
   const sortedTrading = [...trading].sort((a,b) => b.id - a.id);
   const typeIcons = { Capital: '💹', Profit: '📈', Withdrawal: '↩️' };
@@ -654,7 +670,14 @@ function saveTransaction() {
   else { txns.unshift({ id: Date.now(), date, desc, type: currentType, cat, amount, recurring }); }
   save(); renderAll(); closeModal();
 }
-function deleteTransaction() { if (!editingTxnId) return; if (!confirm('Delete this transaction?')) return; txns = txns.filter(t => t.id !== editingTxnId); save(); renderAll(); closeModal(); }
+function deleteTransaction() {
+  if (!editingTxnId) return;
+  if (!confirm('Delete this transaction?')) return;
+  const t = txns.find(x => x.id === editingTxnId);
+  if (t && t.linkedTradingId) { trading = trading.filter(tr => tr.id !== t.linkedTradingId); }
+  txns = txns.filter(t => t.id !== editingTxnId);
+  save(); renderAll(); closeModal();
+}
 function editBudget(cat) {
   const current = budgets[cat] || 0;
   const val = prompt('Set monthly budget for ' + cat + ' (৳):', current);
