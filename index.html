@@ -312,6 +312,15 @@
   </div>
 </div>
 
+<div class="modal-bg" id="confirm-modal-bg" onclick="if(event.target===this) closeConfirmModal()">
+  <div class="modal-card">
+    <div class="modal-title-row"><div class="modal-title" id="confirm-modal-title">Are you sure?</div><div class="close-x" onclick="closeConfirmModal()">✕</div></div>
+    <div class="modal-sub" id="confirm-modal-sub" style="display:none;"></div>
+    <div class="delete-btn" id="confirm-modal-confirm-btn" onclick="confirmConfirmModal()">Delete</div>
+    <div class="type-btn" style="margin-top:10px; text-align:center; padding:12px 0;" onclick="closeConfirmModal()">Cancel</div>
+  </div>
+</div>
+
 <script>
 const GOOGLE_CLIENT_ID = "308775418402-63mjqj9kvn7eethmrcn9si5e6kq8vibj.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -421,11 +430,23 @@ function importBackup(event) {
   reader.readAsText(file);
 }
 function resetAllData() {
-  if (!confirm('This permanently deletes ALL transactions, goals, loans, and trading history on this device. Export a backup first if you want to keep a copy. Continue?')) return;
-  if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
-  txns = []; goals = []; loans = []; trading = []; budgets = { ...DEFAULT_BUDGETS };
-  save(); renderAll();
-  alert('✅ All data cleared. Starting fresh.');
+  openConfirmModal({
+    title: 'Reset all data?',
+    subtitle: 'This permanently deletes ALL transactions, goals, loans, and trading history on this device. Export a backup first if you want to keep a copy.',
+    confirmLabel: 'Continue',
+    onConfirm: () => {
+      openConfirmModal({
+        title: 'Are you absolutely sure?',
+        subtitle: 'This cannot be undone.',
+        confirmLabel: 'Yes, delete everything',
+        onConfirm: () => {
+          txns = []; goals = []; loans = []; trading = []; budgets = { ...DEFAULT_BUDGETS };
+          save(); renderAll();
+          alert('✅ All data cleared. Starting fresh.');
+        }
+      });
+    }
+  });
 }
 function isInRange(dateStr, range) {
   const d = new Date(dateStr); const now = new Date();
@@ -491,35 +512,59 @@ function reverseLoanPayment(t) {
   if (loan) loan.paidAmount = Math.max(0, loan.paidAmount - t.amount);
 }
 function quickDelete(id) {
-  if (!confirm('Delete this transaction?')) return;
-  const t = txns.find(x => x.id === id);
-  if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
-  txns = txns.filter(t => t.id !== id);
-  save(); renderAll();
+  openConfirmModal({
+    title: 'Delete this transaction?',
+    subtitle: 'This cannot be undone.',
+    confirmLabel: 'Delete',
+    onConfirm: () => {
+      const t = txns.find(x => x.id === id);
+      if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
+      txns = txns.filter(t => t.id !== id);
+      save(); renderAll();
+    }
+  });
 }
-function deleteGoal(id) { if (!confirm('Delete this goal?')) return; goals = goals.filter(g => g.id !== id); save(); renderAll(); }
-function deleteLoan(id) { if (!confirm('Delete this loan record?')) return; loans = loans.filter(l => l.id !== id); save(); renderAll(); }
+function deleteGoal(id) {
+  openConfirmModal({
+    title: 'Delete this goal?',
+    confirmLabel: 'Delete',
+    onConfirm: () => { goals = goals.filter(g => g.id !== id); save(); renderAll(); }
+  });
+}
+function deleteLoan(id) {
+  openConfirmModal({
+    title: 'Delete this loan record?',
+    confirmLabel: 'Delete',
+    onConfirm: () => { loans = loans.filter(l => l.id !== id); save(); renderAll(); }
+  });
+}
 const TRADING_TXN_MAP = {
   Capital: { type: 'Expense', cat: 'Trading Capital' },
   Withdrawal: { type: 'Income', cat: 'Trading Withdrawal' },
   Profit: { type: 'Income', cat: 'Trading Profit' }
 };
 function deleteTradingEntry(id) {
-  if (!confirm('Delete this trading entry? This will also remove its linked transaction from your Activity list.')) return;
-  const entry = trading.find(t => t.id === id);
-  if (entry) {
-    if (entry.linkedTxnIds && entry.linkedTxnIds.length) {
-      txns = txns.filter(t => !entry.linkedTxnIds.includes(t.id));
-    } else {
-      const map = TRADING_TXN_MAP[entry.type];
-      if (map) {
-        const matchIdx = txns.findIndex(t => t.type === map.type && t.cat === map.cat && t.amount === entry.amount && t.date === entry.date);
-        if (matchIdx !== -1) txns.splice(matchIdx, 1);
+  openConfirmModal({
+    title: 'Delete this trading entry?',
+    subtitle: 'This will also remove its linked transaction from your Activity list.',
+    confirmLabel: 'Delete',
+    onConfirm: () => {
+      const entry = trading.find(t => t.id === id);
+      if (entry) {
+        if (entry.linkedTxnIds && entry.linkedTxnIds.length) {
+          txns = txns.filter(t => !entry.linkedTxnIds.includes(t.id));
+        } else {
+          const map = TRADING_TXN_MAP[entry.type];
+          if (map) {
+            const matchIdx = txns.findIndex(t => t.type === map.type && t.cat === map.cat && t.amount === entry.amount && t.date === entry.date);
+            if (matchIdx !== -1) txns.splice(matchIdx, 1);
+          }
+        }
       }
+      trading = trading.filter(t => t.id !== id);
+      save(); renderAll();
     }
-  }
-  trading = trading.filter(t => t.id !== id);
-  save(); renderAll();
+  });
 }
 
 let amountModalCallback = null;
@@ -550,6 +595,26 @@ function confirmAmountModal() {
   const cb = amountModalCallback;
   closeAmountModal();
   if (cb) cb(amount);
+}
+
+let confirmModalCallback = null;
+function openConfirmModal(opts) {
+  document.getElementById('confirm-modal-title').textContent = opts.title || 'Are you sure?';
+  const subEl = document.getElementById('confirm-modal-sub');
+  if (opts.subtitle) { subEl.textContent = opts.subtitle; subEl.style.display = 'block'; }
+  else { subEl.style.display = 'none'; }
+  document.getElementById('confirm-modal-confirm-btn').textContent = opts.confirmLabel || 'Delete';
+  confirmModalCallback = opts.onConfirm || null;
+  document.getElementById('confirm-modal-bg').classList.add('open');
+}
+function closeConfirmModal() {
+  document.getElementById('confirm-modal-bg').classList.remove('open');
+  confirmModalCallback = null;
+}
+function confirmConfirmModal() {
+  const cb = confirmModalCallback;
+  closeConfirmModal();
+  if (cb) cb();
 }
 
 function addCapital() {
@@ -870,11 +935,17 @@ function saveTransaction() {
 }
 function deleteTransaction() {
   if (!editingTxnId) return;
-  if (!confirm('Delete this transaction?')) return;
-  const t = txns.find(x => x.id === editingTxnId);
-  if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
-  txns = txns.filter(t => t.id !== editingTxnId);
-  save(); renderAll(); closeModal();
+  openConfirmModal({
+    title: 'Delete this transaction?',
+    subtitle: 'This cannot be undone.',
+    confirmLabel: 'Delete',
+    onConfirm: () => {
+      const t = txns.find(x => x.id === editingTxnId);
+      if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
+      txns = txns.filter(t => t.id !== editingTxnId);
+      save(); renderAll(); closeModal();
+    }
+  });
 }
 function editBudget(cat) {
   const current = budgets[cat] || 0;
