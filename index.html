@@ -465,15 +465,20 @@ function closeOpenSwipeRow(except) {
     openSwipeRow = null;
   }
 }
-function attachSwipe(selector) {
+function attachSwipe(selector, deleteFn) {
   document.querySelectorAll(selector).forEach(row => {
     let startX = 0, currentX = 0, dragging = false;
     row.addEventListener('touchstart', e => { closeOpenSwipeRow(row); startX = e.touches[0].clientX; dragging = true; }, { passive: true });
     row.addEventListener('touchmove', e => { if (!dragging) return; currentX = e.touches[0].clientX - startX; if (currentX < 0 && currentX > -120) row.style.transform = 'translateX(' + currentX + 'px)'; }, { passive: true });
     row.addEventListener('touchend', () => {
       dragging = false;
-      if (currentX < -60) { row.style.transform = 'translateX(-70px)'; openSwipeRow = row; }
-      else { row.style.transform = 'translateX(0)'; if (openSwipeRow === row) openSwipeRow = null; }
+      row.style.transform = 'translateX(0)';
+      if (openSwipeRow === row) openSwipeRow = null;
+      if (currentX < -60 && deleteFn) {
+        const raw = row.dataset.id;
+        const id = isNaN(Number(raw)) ? raw : Number(raw);
+        deleteFn(id);
+      }
       currentX = 0;
     });
   });
@@ -711,7 +716,7 @@ function renderAll() {
       '<div class="goal-sub">' + fmt(g.saved) + ' saved of ' + fmt(g.target) + '</div>' +
       '<div class="goal-btn-row"><div class="goal-btn add" onclick="addToGoal(' + g.id + ')">+ Add Money</div><div class="goal-btn withdraw" onclick="withdrawFromGoal(' + g.id + ')">↩ Withdraw</div></div></div></div>';
   }).join('') || '<div class="empty-msg">No goals yet</div>';
-  attachSwipe('.goal-card');
+  attachSwipe('.goal-card', deleteGoal);
 
   const totalOutstanding = loans.reduce((s,l) => s + Math.max(0, l.totalAmount - l.paidAmount), 0);
   document.getElementById('total-loan-value').textContent = fmt(totalOutstanding);
@@ -732,7 +737,7 @@ function renderAll() {
       (settled ? '<div class="loan-settled">✓ Fully Paid</div>' : '<div class="loan-pay-btn" onclick="payLoan(' + l.id + ')">Make a Payment</div>') +
     '</div></div>';
   }).join('') || '<div class="empty-msg">No loans added yet</div>';
-  attachSwipe('.loan-card');
+  attachSwipe('.loan-card', deleteLoan);
 
   renderTrading();
   renderCharts(ranged);
@@ -783,7 +788,7 @@ function renderTrading() {
         '<div class="trade-entry-amount" style="color:' + typeColors[t.type] + ';">' + sign + fmt(t.amount) + '</div>' +
       '</div></div>';
   }).join('') || '<div class="empty-msg">No trading activity yet</div>';
-  attachSwipe('.trade-entry');
+  attachSwipe('.trade-entry', deleteTradingEntry);
 }
 
 function renderCharts(ranged) {
