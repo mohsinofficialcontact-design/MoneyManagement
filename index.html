@@ -66,6 +66,12 @@
   .filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
   .filter-chip { padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; background: white; color: var(--dark); }
   .filter-chip.active { background: var(--purple); color: white; }
+  .loan-view-row { display: flex; gap: 10px; padding: 16px 20px 4px; justify-content: center; }
+  .loan-view-tab { padding: 8px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 700; cursor: pointer; touch-action: manipulation; transition: transform 0.13s ease, opacity 0.2s ease; opacity: 0.55; }
+  .loan-view-tab:active { transform: scale(0.95); }
+  .loan-view-tab.payable { background: #B92E23; color: white; }
+  .loan-view-tab.receivable { background: #007A5E; color: white; }
+  .loan-view-tab.active { opacity: 1; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
   .budget-card, .goal-card, .loan-card { background: var(--card); border-radius: 14px; padding: 14px; position: relative; z-index: 1; transition: transform 0.2s ease; touch-action: pan-y; }
   .budget-top, .goal-top, .loan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .budget-card { margin-bottom: 10px; }
@@ -208,11 +214,15 @@
   </div>
 
   <div class="page" id="page-loans">
-    <div class="total-summary-card" style="background:linear-gradient(135deg,#E74C3C 0%,#C0392B 100%);">
-      <div class="total-summary-label">🏦 TOTAL OUTSTANDING LOANS</div>
+    <div class="loan-view-row">
+      <div class="loan-view-tab payable active" data-view="payable" onclick="setLoanView('payable')">Account Payable</div>
+      <div class="loan-view-tab receivable" data-view="receivable" onclick="setLoanView('receivable')">Acc. Receivable</div>
+    </div>
+    <div class="total-summary-card" id="loan-summary-card" style="background:linear-gradient(135deg,#E74C3C 0%,#C0392B 100%);">
+      <div class="total-summary-label" id="loan-summary-label">🏦 TOTAL OUTSTANDING LOANS</div>
       <div class="total-summary-value" id="total-loan-value">৳0</div>
     </div>
-    <div class="section"><div class="section-title">Loans <span class="add-link" onclick="openLoanModal()">+ Add Loan</span></div><div class="swipe-hint">← Swipe a loan left to delete</div><div id="loans-list"></div></div>
+    <div class="section"><div class="section-title"><span id="loan-section-label">Loans</span> <span class="add-link" id="loan-add-link" onclick="openLoanModal()">+ Add Loan</span></div><div class="swipe-hint">← Swipe left to delete</div><div id="loans-list"></div></div>
   </div>
 
   <div class="page" id="page-goals">
@@ -285,11 +295,20 @@
 
 <div class="modal-bg" id="loan-modal-bg" onclick="if(event.target===this) closeLoanModal()">
   <div class="modal-card">
-    <div class="modal-title-row"><div class="modal-title">Add loan</div><div class="close-x" onclick="closeLoanModal()">✕</div></div>
+    <div class="modal-title-row"><div class="modal-title" id="loan-modal-title">Add loan</div><div class="close-x" onclick="closeLoanModal()">✕</div></div>
     <input type="text" id="loan-name" placeholder="Lender name (e.g. Esmail Hossain)">
+    <input type="text" id="loan-desc" placeholder="Description (e.g. Excel Automation)">
+    <select id="loan-category" style="display:none;">
+      <option value="Freelance">Freelance</option>
+      <option value="Other Income">Other Income</option>
+      <option value="Loan Given">Loan Given (personal, not income)</option>
+    </select>
     <input type="number" id="loan-amount" placeholder="Total amount borrowed (৳)">
+    <div class="modal-sub" style="margin:-2px 0 4px;">Owed since</div>
+    <input type="date" id="loan-owe-date">
+    <div class="modal-sub" id="loan-due-label" style="margin:-2px 0 4px;">Due date</div>
     <input type="date" id="loan-due">
-    <div class="save-btn" onclick="addLoan()">Add loan</div>
+    <div class="save-btn" id="loan-save-btn" onclick="addLoan()">Add loan</div>
   </div>
 </div>
 
@@ -326,7 +345,7 @@ const GOOGLE_CLIENT_ID = "308775418402-63mjqj9kvn7eethmrcn9si5e6kq8vibj.apps.goo
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const BACKUP_FILENAME = "moneymate-backup.json";
 
-const ICONS = { 'Salary':'💼','Freelance':'💼','Trading Profit':'📈','Gift':'🎁','Other Income':'💰','Groceries':'🛒','Rent':'🏠','Utilities':'⚡','Transport':'🚗','Dining Out':'🍽️','Shopping':'🛍️','Health':'❤️','Education':'🎓','Entertainment':'🎬','Other Expense':'⋯','Loan Payment':'🏦','Savings':'🎯','Savings Withdrawal':'🎯','Trading Capital':'💹','Trading Loss':'📉','Trading Withdrawal':'💹' };
+const ICONS = { 'Salary':'💼','Freelance':'💼','Trading Profit':'📈','Gift':'🎁','Other Income':'💰','Groceries':'🛒','Rent':'🏠','Utilities':'⚡','Transport':'🚗','Dining Out':'🍽️','Shopping':'🛍️','Health':'❤️','Education':'🎓','Entertainment':'🎬','Other Expense':'⋯','Loan Payment':'🏦','Loan Received':'💵','Savings':'🎯','Savings Withdrawal':'🎯','Trading Capital':'💹','Trading Loss':'📉','Trading Withdrawal':'💹' };
 const EXPENSE_CATS = ['Groceries','Rent','Utilities','Transport','Dining Out','Shopping','Health','Education','Entertainment','Loan Payment','Savings','Trading Capital','Trading Loss','Other Expense'];
 const INCOME_CATS = ['Salary','Freelance','Trading Profit','Gift','Other Income','Savings Withdrawal','Trading Withdrawal'];
 const DEFAULT_BUDGETS = { Groceries: 8000, Rent: 25000, Utilities: 4000, Transport: 2500, 'Dining Out': 3000, Shopping: 4000, Health: 2000, Education: 3000, Entertainment: 2000, 'Other Expense': 1500 };
@@ -344,7 +363,12 @@ let budgets = JSON.parse(localStorage.getItem('moneymate-budgets') || 'null') ||
 let loans = JSON.parse(localStorage.getItem('moneymate-loans') || 'null') || SEED_LOANS;
 let trading = JSON.parse(localStorage.getItem('moneymate-trading') || 'null') || SEED_TRADING;
 
-let currentFilter = 'All', currentType = 'Expense', currentRange = 'month', editingTxnId = null, selectedGoalIcon = '🎯';
+let currentFilter = 'All', currentType = 'Expense', currentRange = 'month', editingTxnId = null, selectedGoalIcon = '🎯', loanViewMode = 'payable';
+function setLoanView(mode) {
+  loanViewMode = mode;
+  document.querySelectorAll('.loan-view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === mode));
+  renderAll();
+}
 let accessToken = null, driveFileId = null, tokenClient = null;
 let trendChartInstance = null, categoryChartInstance = null;
 
@@ -507,12 +531,11 @@ function removeMatchingTradingEntry(t) {
   if (matchIdx !== -1) trading.splice(matchIdx, 1);
 }
 function reverseLoanPayment(t) {
-  if (t.cat !== 'Loan Payment') return;
   let loan = null;
   if (t.linkedLoanId) loan = loans.find(l => l.id === t.linkedLoanId);
-  if (!loan && t.desc && t.desc.startsWith('Loan Payment - ')) {
-    const name = t.desc.slice('Loan Payment - '.length);
-    loan = loans.find(l => l.name === name);
+  if (!loan && t.desc) {
+    if (t.desc.startsWith('Loan Payment - ')) loan = loans.find(l => l.name === t.desc.slice('Loan Payment - '.length));
+    else if (t.desc.startsWith('Received from ')) loan = loans.find(l => l.name === t.desc.slice('Received from '.length));
   }
   if (loan) loan.paidAmount = Math.max(0, loan.paidAmount - t.amount);
 }
@@ -537,8 +560,10 @@ function deleteGoal(id) {
   });
 }
 function deleteLoan(id) {
+  const loan = loans.find(l => l.id === id);
+  const isReceivable = loan && (loan.kind || 'payable') === 'receivable';
   openConfirmModal({
-    title: 'Delete this loan record?',
+    title: isReceivable ? 'Delete this receivable record?' : 'Delete this loan record?',
     confirmLabel: 'Delete',
     onConfirm: () => { loans = loans.filter(l => l.id !== id); save(); renderAll(); }
   });
@@ -718,9 +743,15 @@ function renderAll() {
   }).join('') || '<div class="empty-msg">No goals yet</div>';
   attachSwipe('.goal-card', deleteGoal);
 
-  const totalOutstanding = loans.reduce((s,l) => s + Math.max(0, l.totalAmount - l.paidAmount), 0);
+  const isReceivable = loanViewMode === 'receivable';
+  const filteredLoans = loans.filter(l => (l.kind || 'payable') === loanViewMode);
+  const totalOutstanding = filteredLoans.reduce((s,l) => s + Math.max(0, l.totalAmount - l.paidAmount), 0);
   document.getElementById('total-loan-value').textContent = fmt(totalOutstanding);
-  const sortedLoans = [...loans].sort((a,b) => {
+  document.getElementById('loan-summary-label').textContent = isReceivable ? '💰 TOTAL RECEIVABLE' : '🏦 TOTAL OUTSTANDING LOANS';
+  document.getElementById('loan-summary-card').style.background = isReceivable ? 'linear-gradient(135deg,#00B894 0%,#00997A 100%)' : 'linear-gradient(135deg,#E74C3C 0%,#C0392B 100%)';
+  document.getElementById('loan-section-label').textContent = isReceivable ? 'Receivables' : 'Loans';
+  document.getElementById('loan-add-link').textContent = isReceivable ? '+ Add Receivable' : '+ Add Loan';
+  const sortedLoans = [...filteredLoans].sort((a,b) => {
     const aSettled = (a.totalAmount - a.paidAmount) <= 0;
     const bSettled = (b.totalAmount - b.paidAmount) <= 0;
     if (aSettled !== bSettled) return aSettled ? 1 : -1;
@@ -728,15 +759,21 @@ function renderAll() {
   });
   document.getElementById('loans-list').innerHTML = sortedLoans.map(l => {
     const remaining = Math.max(0, l.totalAmount - l.paidAmount); const pct = Math.min(100, Math.round((l.paidAmount / l.totalAmount) * 100)); const settled = remaining <= 0;
+    const detailLabel = isReceivable ? 'Lent' : 'Borrowed';
+    const paidLabel = isReceivable ? 'Received so far' : 'Paid so far';
+    const btnLabel = isReceivable ? 'Mark as Received' : 'Make a Payment';
+    const settledLabel = isReceivable ? '✓ Fully Received' : '✓ Fully Paid';
+    const barColor = isReceivable ? '#00B894' : '#6C5CE7';
+    const btnStyle = isReceivable ? ' style="background:#00B894;"' : '';
     return '<div class="swipe-outer"><div class="swipe-actions"><div class="swipe-action-btn delete" style="border-radius:14px;" onclick="deleteLoan(' + l.id + ')">🗑️</div></div>' +
       '<div class="loan-card" data-id="' + l.id + '">' +
-      '<div class="loan-top"><div><div class="loan-name">' + l.name + '</div><div class="loan-due">📅 Due: ' + l.dueDate + '</div></div><div class="loan-remaining">' + fmt(remaining) + '<div style="font-size:10px;color:var(--grey);font-weight:600;">remaining</div></div></div>' +
-      '<div class="loan-detail-row"><span>Borrowed</span><span class="borrowed">' + fmt(l.totalAmount) + '</span></div>' +
-      '<div class="track"><div class="fill" style="width:' + pct + '%;background:#6C5CE7"></div></div>' +
-      '<div class="loan-detail-row" style="margin-top:6px;"><span>Paid so far</span><span class="paid">' + fmt(l.paidAmount) + '</span></div>' +
-      (settled ? '<div class="loan-settled">✓ Fully Paid</div>' : '<div class="loan-pay-btn" onclick="payLoan(' + l.id + ')">Make a Payment</div>') +
+      '<div class="loan-top"><div><div class="loan-name">' + l.name + (l.category ? ' <span style="font-size:9.5px;font-weight:700;color:' + barColor + ';background:' + barColor + '22;padding:2px 7px;border-radius:999px;vertical-align:middle;">' + l.category + '</span>' : '') + '</div>' + (l.desc ? '<div style="font-size:11.5px;color:var(--grey);margin-top:2px;">' + l.desc + '</div>' : '') + '<div class="loan-due">📅 ' + (l.owedDate ? 'Since: ' + l.owedDate + ' · ' : '') + 'Due: ' + l.dueDate + '</div></div><div class="loan-remaining">' + fmt(remaining) + '<div style="font-size:10px;color:var(--grey);font-weight:600;">remaining</div></div></div>' +
+      '<div class="loan-detail-row"><span>' + detailLabel + '</span><span class="borrowed">' + fmt(l.totalAmount) + '</span></div>' +
+      '<div class="track"><div class="fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '<div class="loan-detail-row" style="margin-top:6px;"><span>' + paidLabel + '</span><span class="paid">' + fmt(l.paidAmount) + '</span></div>' +
+      (settled ? '<div class="loan-settled">' + settledLabel + '</div>' : '<div class="loan-pay-btn"' + btnStyle + ' onclick="payLoan(' + l.id + ')">' + btnLabel + '</div>') +
     '</div></div>';
-  }).join('') || '<div class="empty-msg">No loans added yet</div>';
+  }).join('') || '<div class="empty-msg">No ' + (isReceivable ? 'receivables' : 'loans') + ' added yet</div>';
   attachSwipe('.loan-card', deleteLoan);
 
   renderTrading();
@@ -897,12 +934,13 @@ function saveTransaction() {
       const tr = trading.find(x => x.id === t.linkedTradingId);
       if (tr) { tr.amount = amount; tr.date = date; }
     }
-    // Keep the linked loan's paid amount in sync if this is a loan payment
-    if (cat === 'Loan Payment') {
-      let loan = t.linkedLoanId ? loans.find(l => l.id === t.linkedLoanId) : null;
-      if (!loan && desc.startsWith('Loan Payment - ')) loan = loans.find(l => l.name === desc.slice('Loan Payment - '.length));
-      if (loan) loan.paidAmount = Math.max(0, loan.paidAmount - oldAmount + amount);
+    // Keep the linked loan's paid amount in sync if this is a loan payment or receipt
+    let loanToSync = t.linkedLoanId ? loans.find(l => l.id === t.linkedLoanId) : null;
+    if (!loanToSync) {
+      if (desc.startsWith('Loan Payment - ')) loanToSync = loans.find(l => l.name === desc.slice('Loan Payment - '.length));
+      else if (desc.startsWith('Received from ')) loanToSync = loans.find(l => l.name === desc.slice('Received from '.length));
     }
+    if (loanToSync) loanToSync.paidAmount = Math.max(0, loanToSync.paidAmount - oldAmount + amount);
     save(); renderAll(); closeModal();
     return;
   }
@@ -964,29 +1002,52 @@ function editBudget(cat) {
     onConfirm: (num) => { budgets[cat] = num; save(); renderAll(); }
   });
 }
-function openLoanModal() { document.getElementById('loan-name').value=''; document.getElementById('loan-amount').value=''; document.getElementById('loan-due').value=''; document.getElementById('loan-modal-bg').classList.add('open'); }
+function openLoanModal() {
+  document.getElementById('loan-name').value=''; document.getElementById('loan-amount').value=''; document.getElementById('loan-due').value='';
+  document.getElementById('loan-desc').value=''; document.getElementById('loan-category').value = 'Freelance';
+  document.getElementById('loan-owe-date').value = new Date().toISOString().slice(0,10);
+  const isReceivable = loanViewMode === 'receivable';
+  document.getElementById('loan-modal-title').textContent = isReceivable ? 'Add receivable' : 'Add loan';
+  document.getElementById('loan-name').placeholder = isReceivable ? 'Client name (e.g. Aminur Islam)' : 'Lender name (e.g. Esmail Hossain)';
+  document.getElementById('loan-desc').placeholder = isReceivable ? 'Description (e.g. Excel Automation)' : 'Description (optional)';
+  document.getElementById('loan-category').style.display = isReceivable ? 'block' : 'none';
+  document.getElementById('loan-amount').placeholder = isReceivable ? 'Total amount receivable (৳)' : 'Total amount borrowed (৳)';
+  document.getElementById('loan-due-label').textContent = isReceivable ? 'Expected / maturity date' : 'Due date';
+  document.getElementById('loan-save-btn').textContent = isReceivable ? 'Add receivable' : 'Add loan';
+  document.getElementById('loan-modal-bg').classList.add('open');
+}
 function closeLoanModal() { document.getElementById('loan-modal-bg').classList.remove('open'); }
 function addLoan() {
   const name = document.getElementById('loan-name').value.trim();
+  const desc = document.getElementById('loan-desc').value.trim();
   const amount = parseFloat(document.getElementById('loan-amount').value);
   const due = document.getElementById('loan-due').value;
-  if (!name || !amount || !due) { alert('Please fill in all loan fields'); return; }
-  loans.push({ id: Date.now(), name, totalAmount: amount, paidAmount: 0, dueDate: due });
+  const owedDate = document.getElementById('loan-owe-date').value || new Date().toISOString().slice(0,10);
+  const isReceivable = loanViewMode === 'receivable';
+  const category = isReceivable ? document.getElementById('loan-category').value : null;
+  if (!name || !amount || !due) { alert('Please fill in name, amount, and date'); return; }
+  loans.push({ id: Date.now(), name, desc: desc || null, category, totalAmount: amount, paidAmount: 0, dueDate: due, owedDate, kind: loanViewMode });
   save(); renderAll(); closeLoanModal();
 }
 function payLoan(loanId) {
   const loan = loans.find(l => l.id === loanId); if (!loan) return;
+  const isReceivable = (loan.kind || 'payable') === 'receivable';
   const remaining = loan.totalAmount - loan.paidAmount;
   openAmountModal({
-    title: 'Pay loan: ' + loan.name,
+    title: (isReceivable ? 'Receive payment: ' : 'Pay loan: ') + loan.name,
     subtitle: 'Remaining balance: ' + fmt(remaining),
-    placeholder: 'Payment amount (৳)',
+    placeholder: 'Amount (৳)',
     presetValue: remaining,
-    confirmLabel: 'Record payment',
+    confirmLabel: isReceivable ? 'Record receipt' : 'Record payment',
     onConfirm: (amount) => {
       const actualPayment = Math.min(amount, remaining);
       loan.paidAmount += actualPayment;
-      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false, linkedLoanId: loan.id });
+      if (isReceivable) {
+        const cat = (loan.category && loan.category !== 'Loan Given') ? loan.category : 'Loan Received';
+        txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Received from ' + loan.name, type: 'Income', cat: cat, amount: actualPayment, recurring: false, linkedLoanId: loan.id });
+      } else {
+        txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false, linkedLoanId: loan.id });
+      }
       save(); renderAll();
     }
   });
