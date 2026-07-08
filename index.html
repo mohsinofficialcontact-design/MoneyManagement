@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Personal Finance</title>
+<title>MoneyMate</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
@@ -480,10 +480,20 @@ function removeMatchingTradingEntry(t) {
   const matchIdx = trading.findIndex(tr => tr.type === tradeType && tr.amount === t.amount && tr.date === t.date);
   if (matchIdx !== -1) trading.splice(matchIdx, 1);
 }
+function reverseLoanPayment(t) {
+  if (t.cat !== 'Loan Payment') return;
+  let loan = null;
+  if (t.linkedLoanId) loan = loans.find(l => l.id === t.linkedLoanId);
+  if (!loan && t.desc && t.desc.startsWith('Loan Payment - ')) {
+    const name = t.desc.slice('Loan Payment - '.length);
+    loan = loans.find(l => l.name === name);
+  }
+  if (loan) loan.paidAmount = Math.max(0, loan.paidAmount - t.amount);
+}
 function quickDelete(id) {
   if (!confirm('Delete this transaction?')) return;
   const t = txns.find(x => x.id === id);
-  if (t) removeMatchingTradingEntry(t);
+  if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
   txns = txns.filter(t => t.id !== id);
   save(); renderAll();
 }
@@ -810,11 +820,18 @@ function saveTransaction() {
 
   if (editingTxnId) {
     const t = txns.find(x => x.id === editingTxnId);
+    const oldAmount = t.amount;
     Object.assign(t, { desc, amount, cat, date, type: currentType, recurring });
     // Keep a linked trading entry in sync if this transaction originated from the trading flow
     if (t.linkedTradingId) {
       const tr = trading.find(x => x.id === t.linkedTradingId);
       if (tr) { tr.amount = amount; tr.date = date; }
+    }
+    // Keep the linked loan's paid amount in sync if this is a loan payment
+    if (cat === 'Loan Payment') {
+      let loan = t.linkedLoanId ? loans.find(l => l.id === t.linkedLoanId) : null;
+      if (!loan && desc.startsWith('Loan Payment - ')) loan = loans.find(l => l.name === desc.slice('Loan Payment - '.length));
+      if (loan) loan.paidAmount = Math.max(0, loan.paidAmount - oldAmount + amount);
     }
     save(); renderAll(); closeModal();
     return;
@@ -855,7 +872,7 @@ function deleteTransaction() {
   if (!editingTxnId) return;
   if (!confirm('Delete this transaction?')) return;
   const t = txns.find(x => x.id === editingTxnId);
-  if (t) removeMatchingTradingEntry(t);
+  if (t) { removeMatchingTradingEntry(t); reverseLoanPayment(t); }
   txns = txns.filter(t => t.id !== editingTxnId);
   save(); renderAll(); closeModal();
 }
@@ -893,7 +910,7 @@ function payLoan(loanId) {
     onConfirm: (amount) => {
       const actualPayment = Math.min(amount, remaining);
       loan.paidAmount += actualPayment;
-      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false });
+      txns.unshift({ id: Date.now(), date: new Date().toISOString().slice(0,10), desc: 'Loan Payment - ' + loan.name, type: 'Expense', cat: 'Loan Payment', amount: actualPayment, recurring: false, linkedLoanId: loan.id });
       save(); renderAll();
     }
   });
